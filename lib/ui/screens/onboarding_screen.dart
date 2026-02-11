@@ -4,7 +4,8 @@ import '../../utils/app_theme.dart';
 import 'home_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+  final bool isReplay;
+  const OnboardingScreen({super.key, this.isReplay = false});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -64,6 +65,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
     ),
     OnboardingPage(
+      icon: Icons.stars,
+      iconColor: AppTheme.primaryColor,
+      title: "Deviens un Héros !",
+      description:
+          "Gagne 10 XP par heure de port et 50 XP par brossage. Monte de niveau pour devenir une légende et débloquer des badges !",
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF1A1A2E), Color(0xFF1E3C72)],
+      ),
+    ),
+    OnboardingPage(
       icon: Icons.rocket_launch,
       iconColor: AppTheme.accentColor,
       title: "C'est Parti !",
@@ -84,6 +97,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _completeOnboarding() async {
+    if (widget.isReplay) {
+      Navigator.of(context).pop();
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_completed', true);
 

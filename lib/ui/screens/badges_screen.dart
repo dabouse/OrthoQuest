@@ -15,7 +15,16 @@ class BadgesScreen extends ConsumerWidget {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text("Mes Badges"), centerTitle: true),
+      appBar: AppBar(
+        title: const Text("Mes Badges"),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () => _showBadgesInfo(context),
+          ),
+        ],
+      ),
       body: AppBackground(
         child: SafeArea(
           child: GridView.builder(
@@ -78,6 +87,83 @@ class BadgesScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showBadgesInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Comment débloquer ?"),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildBadgeInfoRow(
+                Icons.directions_walk,
+                "Premiers Pas",
+                "Termine ta 1ère session.",
+              ),
+              _buildBadgeInfoRow(
+                Icons.nights_stay,
+                "Oiseau de Nuit",
+                "5 sessions avec la Lune.",
+              ),
+              _buildBadgeInfoRow(
+                Icons.local_fire_department,
+                "Dents d'Acier",
+                "Série de 7 jours (13h+).",
+              ),
+              _buildBadgeInfoRow(
+                Icons.clean_hands,
+                "Pro de l'Hygiène",
+                "10 sessions de brossage.",
+              ),
+              _buildBadgeInfoRow(
+                Icons.timer,
+                "Marathonien",
+                "Porte l'appareil 16h+ par jour.",
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Compris !"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBadgeInfoRow(IconData icon, String title, String description) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppTheme.secondaryColor),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  description,
+                  style: const TextStyle(fontSize: 12, color: Colors.white54),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

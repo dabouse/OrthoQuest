@@ -1,7 +1,9 @@
+import 'dart:math';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/session.dart';
 import '../utils/date_utils.dart';
+import '../models/badge.dart';
 
 /// Service singleton gérant la base de données SQLite locale.
 ///
@@ -252,5 +254,94 @@ class DatabaseService {
       'badge_id': badgeId,
       'unlocked_at': DateTime.now().toIso8601String(),
     }, conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+  /// Injecte des données fictives aléatoires pour la démonstration.
+  Future<void> _seedDummyData() async {
+    final random = Random();
+    final db = await database;
+
+    // Clear existing
+    await db.delete('sessions');
+    await db.delete('user_badges');
+
+    final now = DateTime.now();
+    // Générer des données pour les 14 derniers jours
+    for (int i = 0; i < 14; i++) {
+      final dayDate = now.subtract(Duration(days: i));
+
+      // 80% de chance d'avoir une session de jour
+      if (random.nextDouble() > 0.2) {
+        final startHour = 7 + random.nextInt(4); // 7h à 10h
+        final durationHours = 4 + random.nextInt(4); // 4h à 7h
+        final startDay = DateTime(
+          dayDate.year,
+          dayDate.month,
+          dayDate.day,
+          startHour,
+          random.nextInt(60),
+        );
+        final endDay = startDay.add(Duration(hours: durationHours));
+
+        await insertSession(
+          Session(
+            startTime: startDay,
+            endTime: endDay,
+            stickerId: random.nextInt(5) + 1,
+          ),
+        );
+      }
+
+      // 90% de chance d'avoir une session de nuit
+      if (random.nextDouble() > 0.1) {
+        final startHour = 20 + random.nextInt(3); // 20h à 22h
+        final durationHours = 7 + random.nextInt(4); // 7h à 10h
+        final startNight = DateTime(
+          dayDate.year,
+          dayDate.month,
+          dayDate.day,
+          startHour,
+          random.nextInt(60),
+        );
+        final endNight = startNight.add(Duration(hours: durationHours));
+
+        await insertSession(
+          Session(
+            startTime: startNight,
+            endTime: endNight,
+            stickerId: random.nextInt(5) + 1,
+          ),
+        );
+      }
+    }
+
+    // Débloquer 2 à 4 badges au hasard
+    final badgeIds = appBadges.map((b) => b.id).toList();
+    badgeIds.shuffle();
+    final numBadges = 2 + random.nextInt(3);
+    for (int i = 0; i < numBadges; i++) {
+      await unlockBadge(badgeIds[i]);
+    }
+
+    // Mettre à jour les stats de brossage
+    final totalBrushings = 5 + random.nextInt(20);
+    await updateSetting('total_brushings', totalBrushings.toString());
+
+    // Ajouter de l'XP et un niveau aléatoire
+    final randomXp = 1000 + random.nextInt(4000);
+    final level = (randomXp / 1000).floor() + 1;
+    await updateUserStats(randomXp, level);
+  }
+
+  // Wrapper for public access if needed (the existing code had seedDummyData public)
+  Future<void> seedDummyData() => _seedDummyData();
+
+  /// Efface toutes les sessions et badges, et réinitialise les stats utilisateur.
+  Future<void> clearAllData() async {
+    final db = await database;
+    await db.delete('sessions');
+    await db.delete('user_badges');
+    await db.update('user_stats', {'xp': 0, 'level': 1}, where: 'id = 1');
+    await updateSetting('total_brushings', '0');
   }
 }

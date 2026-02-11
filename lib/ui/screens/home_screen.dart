@@ -39,6 +39,75 @@ class HomeScreen extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        leading: userState.streak > 0
+            ? Center(
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BadgesScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(left: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: _getStreakColor(
+                          userState.streak,
+                        ).withValues(alpha: 0.8),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _getStreakColor(
+                            userState.streak,
+                          ).withValues(alpha: 0.3),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          userState.streak >= 3
+                              ? Icons.local_fire_department
+                              : Icons.ac_unit,
+                          color: _getStreakColor(userState.streak),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          "${userState.streak}",
+                          style: TextStyle(
+                            color: _getStreakColor(userState.streak),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            shadows: [
+                              Shadow(
+                                color: _getStreakColor(
+                                  userState.streak,
+                                ).withValues(alpha: 0.5),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            : null,
+        leadingWidth: 85,
         actions: [
           IconButton(
             icon: const Icon(Icons.bar_chart), // Changed to chart icon
@@ -64,13 +133,9 @@ class HomeScreen extends ConsumerWidget {
         child: SafeArea(
           child: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Column(
                 children: [
-                  // Badge de streak uniquement (compact)
-                  if (userState.streak > 0) _buildStreakBadge(userState),
-                  if (userState.streak > 0) const SizedBox(height: 24),
-
                   // Main Card avec Sessions + Gauge + 3 derniers jours + Level
                   VibrantCard(
                     child: Column(
@@ -307,13 +372,27 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              Text(
-                                "Niveau ${userState.level} • ${userState.xp % 1000} / 1000 XP",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white60,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "Niveau ${userState.level} • ${userState.xp % 1000} / 1000 XP",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white60,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  GestureDetector(
+                                    onTap: () => _showXPInfo(context),
+                                    child: const Icon(
+                                      Icons.help_outline,
+                                      size: 14,
+                                      color: Colors.white38,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -503,51 +582,10 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStreakBadge(UserState userState) {
-    final streak = userState.streak;
-    Color flameColor = AppTheme.primaryColor;
-    if (streak >= 7) {
-      flameColor = AppTheme.accentColor; // Pink for high streak
-    } else if (streak >= 3) {
-      flameColor = AppTheme.secondaryColor; // Purple for medium streak
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1), // Effet verre
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: flameColor, width: 2), // Bordure solide
-        boxShadow: [
-          BoxShadow(
-            color: flameColor.withValues(alpha: 0.2),
-            blurRadius: 15,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            streak >= 3 ? Icons.local_fire_department : Icons.ac_unit,
-            color: flameColor,
-            size: 24,
-            shadows: [BoxShadow(color: flameColor, blurRadius: 10)],
-          ),
-          const SizedBox(width: 8),
-          Text(
-            "$streak jours",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: flameColor,
-              fontSize: 16,
-              shadows: [BoxShadow(color: flameColor, blurRadius: 10)],
-            ),
-          ),
-        ],
-      ),
-    );
+  Color _getStreakColor(int streak) {
+    if (streak >= 7) return AppTheme.accentColor;
+    if (streak >= 3) return AppTheme.secondaryColor;
+    return AppTheme.primaryColor;
   }
 
   Widget _build3DaysHistory(TimerState timerState) {
@@ -800,6 +838,76 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showXPInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Système d'XP"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Gagne des points pour devenir une légende :",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            _buildInfoRow(
+              Icons.timer_outlined,
+              "Port de l'appareil",
+              "10 XP / heure",
+            ),
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              Icons.brush_outlined,
+              "Brossage des dents",
+              "50 XP / session",
+            ),
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              Icons.trending_up,
+              "Niveaux",
+              "1 montée tous les 1000 XP",
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cool !"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String title, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: AppTheme.primaryColor),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(fontSize: 12, color: Colors.white54),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
