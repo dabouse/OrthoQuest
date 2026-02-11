@@ -308,28 +308,27 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                           a.startTime.compareTo(b.startTime),
                                     );
 
-                                    if (stackIndex >= 0 &&
-                                        stackIndex < daySessions.length) {
-                                      final session = daySessions[stackIndex];
-                                      if (_selectedSessionId == session.id) {
-                                        _selectedSessionId = null;
-                                        _selectedDate = null;
-                                      } else {
-                                        _selectedSessionId = session.id;
-                                        _selectedDate = DateTime(
-                                          date.year,
-                                          date.month,
-                                          date.day,
-                                        );
-                                      }
-                                    } else {
-                                      _selectedDate = DateTime(
+                                    setState(() {
+                                      final targetDate = DateTime(
                                         date.year,
                                         date.month,
                                         date.day,
                                       );
-                                      _selectedSessionId = null;
-                                    }
+
+                                      if (_selectedDate != null &&
+                                          DateUtils.isSameDay(
+                                            _selectedDate!,
+                                            targetDate,
+                                          )) {
+                                        // Si on reclique sur le même jour, on tout déselectionne
+                                        _selectedDate = null;
+                                        _selectedSessionId = null;
+                                      } else {
+                                        // Sinon on sélectionne le jour mais on ne sélectionne pas de session spécifique
+                                        _selectedDate = targetDate;
+                                        _selectedSessionId = null;
+                                      }
+                                    });
                                   });
                                 },
                               ),
@@ -573,27 +572,53 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                _selectedDate != null
-                    ? "Sessions du ${DateFormat('dd MMMM', 'fr_FR').format(_selectedDate!)}"
-                    : "Historique de la période",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _selectedDate != null
+                        ? "Journée du ${DateFormat('dd MMMM', 'fr_FR').format(_selectedDate!)}"
+                        : "Toutes les sessions",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (_selectedDate != null)
+                    Text(
+                      "${(_allStats[_selectedDate!] ?? 0) ~/ 60}h ${(_allStats[_selectedDate!] ?? 0) % 60}min au total",
+                      style: TextStyle(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.8),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                ],
               ),
               if (_selectedDate != null)
-                Text(
-                  "${(_allStats[_selectedDate!] ?? 0) ~/ 60}h ${(_allStats[_selectedDate!] ?? 0) % 60}min",
-                  style: const TextStyle(
-                    color: AppTheme.primaryColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _selectedDate = null;
+                      _selectedSessionId = null;
+                    });
+                  },
+                  icon: const Icon(Icons.close, size: 16),
+                  label: const Text("Voir tout"),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.primaryColor,
+                    backgroundColor: AppTheme.primaryColor.withValues(
+                      alpha: 0.1,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
                 ),
             ],

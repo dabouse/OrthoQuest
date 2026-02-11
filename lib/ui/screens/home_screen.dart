@@ -188,61 +188,67 @@ class HomeScreen extends ConsumerWidget {
 
                         // Jauge circulaire principale
                         CircularPercentIndicator(
-                          radius: 110.0,
+                          radius: 115.0,
                           lineWidth: 20.0,
                           percent: progress,
-                          center: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _formatDuration(totalDuration),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 36.0,
-                                  color: Colors.white,
-                                  shadows: [
-                                    BoxShadow(
-                                      color: AppTheme.primaryColor,
-                                      blurRadius: 10,
+                          center: Padding(
+                            padding: const EdgeInsets.all(15.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    _formatDuration(totalDuration),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 32.0,
+                                      color: Colors.white,
+                                      shadows: [
+                                        BoxShadow(
+                                          color: AppTheme.primaryColor,
+                                          blurRadius: 10,
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              ),
-                              const Text(
-                                "Aujourd'hui",
-                                style: TextStyle(color: Colors.white70),
-                              ),
-                              const SizedBox(height: 5),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color:
-                                        (totalDuration.inHours >=
-                                            timerState.dailyGoal)
-                                        ? AppTheme.successColor
-                                        : AppTheme.primaryColor,
                                   ),
                                 ),
-                                child: Text(
-                                  "Objectif: ${timerState.dailyGoal}h",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                        (totalDuration.inHours >=
-                                            timerState.dailyGoal)
-                                        ? AppTheme.successColor
-                                        : AppTheme.primaryColor,
+                                const Text(
+                                  "Aujourd'hui",
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                                const SizedBox(height: 5),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color:
+                                          (totalDuration.inHours >=
+                                              timerState.dailyGoal)
+                                          ? AppTheme.successColor
+                                          : AppTheme.primaryColor,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    "Objectif: ${timerState.dailyGoal}h",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          (totalDuration.inHours >=
+                                              timerState.dailyGoal)
+                                          ? AppTheme.successColor
+                                          : AppTheme.primaryColor,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           progressColor:
                               (totalDuration.inHours >= timerState.dailyGoal)
@@ -415,57 +421,71 @@ class HomeScreen extends ConsumerWidget {
                           children: [
                             GestureDetector(
                               onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const BrushingScreen(),
-                                  ),
-                                );
+                                if (isRunning) {
+                                  _showBrushingWarning(context);
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const BrushingScreen(),
+                                    ),
+                                  );
+                                }
                               },
-                              child: Container(
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
                                 width: 90,
                                 height: 90,
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryColor.withValues(
-                                    alpha: 0.2,
-                                  ), // Cyan tint
+                                  color: isRunning
+                                      ? Colors.white.withValues(alpha: 0.05)
+                                      : AppTheme.primaryColor.withValues(
+                                          alpha: 0.2,
+                                        ), // Cyan tint
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: AppTheme.primaryColor,
+                                    color: isRunning
+                                        ? Colors.white24
+                                        : AppTheme.primaryColor,
                                     width: 2,
                                   ), // Solid border
                                   boxShadow: [
-                                    BoxShadow(
-                                      color: AppTheme.primaryColor.withValues(
-                                        alpha: 0.3,
+                                    if (!isRunning)
+                                      BoxShadow(
+                                        color: AppTheme.primaryColor.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                        blurRadius: 15,
+                                        offset: const Offset(0, 5),
                                       ),
-                                      blurRadius: 15,
-                                      offset: const Offset(0, 5),
-                                    ),
                                   ],
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.cleaning_services,
                                   size: 45,
-                                  color: Colors
-                                      .white, // White icon for max contrast
+                                  color: isRunning
+                                      ? Colors.white24
+                                      : Colors.white,
                                 ),
                               ),
                             ),
                             const SizedBox(height: 12),
-                            const Text(
+                            Text(
                               "BROSSAGE",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                                 letterSpacing: 1.5,
-                                color: Colors.white70,
+                                color: isRunning
+                                    ? Colors.white24
+                                    : Colors.white70,
                                 shadows: [
-                                  BoxShadow(
-                                    color: AppTheme.primaryColor,
-                                    blurRadius: 10,
-                                  ),
+                                  if (!isRunning)
+                                    const BoxShadow(
+                                      color: AppTheme.primaryColor,
+                                      blurRadius: 10,
+                                    ),
                                 ],
                               ),
                             ),
@@ -777,6 +797,24 @@ class HomeScreen extends ConsumerWidget {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Annuler"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBrushingWarning(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Appareil porté !"),
+        content: const Text(
+          "Tu ne peux pas te brosser les dents avec ton appareil. 😉\n\nArrête d'abord ton suivi de port pour lancer le brossage !",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Compris !"),
           ),
         ],
       ),
