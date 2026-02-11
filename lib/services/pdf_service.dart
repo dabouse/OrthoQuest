@@ -20,12 +20,17 @@ class PdfService {
     final dateStr = DateFormat('dd/MM/yyyy').format(now);
 
     // Fetch dynamic goal
+    // Ferch dynamic goal
     final goalStr = await DatabaseService().getSetting('daily_goal');
     final goalHours = int.tryParse(goalStr ?? '13') ?? 13;
-    final targetMinutes = goalHours * 60;
 
     // Calculate Summary Stats
     int totalMinutes = stats.values.fold(0, (sum, val) => sum + val);
+    int maxMinutes = stats.values.isEmpty ? 0 : stats.values.reduce(math.max);
+
+    // Max Y is the highest between actual data and goal, plus 1 hour
+    int chartMaxY = math.max(goalHours, (maxMinutes / 60).toInt()) + 1;
+
     double avgMinutes = stats.isEmpty
         ? 0
         : totalMinutes / (stats.isNotEmpty ? stats.length : 1);
@@ -36,14 +41,32 @@ class PdfService {
     final sortedEntries = stats.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
 
-    // Sort descending for the table
-    final tableEntries = List.from(sortedEntries.reversed);
+    // Fetch sessions for detailed table
+    final allSessions = await DatabaseService().getSessions();
+    final sortedEntriesDates = sortedEntries
+        .map((e) => DateTime(e.key.year, e.key.month, e.key.day))
+        .toList();
+
+    final periodSessions = allSessions.where((s) {
+      if (s.endTime == null) return false;
+      final sessionDate = DateTime(
+        s.startTime.year,
+        s.startTime.month,
+        s.startTime.day,
+      );
+      return sortedEntriesDates.any((d) => d.isAtSameMomentAs(sessionDate));
+    }).toList();
+
+    periodSessions.sort((a, b) => b.startTime.compareTo(a.startTime));
+
+    final isLandscape = sortedEntries.length > 7;
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: sortedEntries.length > 7
-            ? PdfPageFormat.a4.landscape
-            : PdfPageFormat.a4,
+        pageFormat: isLandscape ? PdfPageFormat.a4.landscape : PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(
+          35,
+        ), // Reduce margins slightly to gain space
         theme: pw.ThemeData.withFont(base: font, bold: fontBold),
         build: (context) {
           return [
@@ -91,17 +114,16 @@ class PdfService {
                 _buildSummaryCard("Objectif", "${goalHours}h"),
               ],
             ),
-            pw.SizedBox(height: 30),
+            pw.SizedBox(height: 20),
 
             // CHART SECTION
             pw.Text(
               "Évolution du temps de port",
               style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
             ),
-            pw.SizedBox(height: 10),
             if (sortedEntries.isNotEmpty)
               pw.Container(
-                height: 300, // Slightly taller in landscape
+                height: isLandscape ? 320 : 300,
                 child: pw.Chart(
                   grid: pw.CartesianGrid(
                     xAxis: pw.FixedAxis(
@@ -111,22 +133,18 @@ class PdfService {
                       ).format(sortedEntries[v.toInt()].key),
                       angle: -math.pi / 2,
                     ),
-                    yAxis: pw.FixedAxis([
-                      0,
-                      4,
-                      8,
-                      12,
-                      16,
-                      20,
-                      24,
-                    ], format: (v) => "${v.toInt()}h"),
+                    yAxis: pw.FixedAxis(
+                      List.generate(
+                        (chartMaxY + 1), // De 0 à chartMaxY
+                        (i) => i.toDouble(),
+                      ),
+                      format: (v) => "${v.toInt()}h",
+                    ),
                   ),
                   datasets: [
                     pw.BarDataSet(
                       color: PdfColors.blue,
-                      width: sortedEntries.length > 7
-                          ? 15
-                          : 30, // Wider bars allowed in landscape
+                      width: sortedEntries.length > 7 ? 15 : 30,
                       data: List<pw.PointChartValue>.generate(
                         sortedEntries.length,
                         (i) {
@@ -135,14 +153,28 @@ class PdfService {
                         },
                       ),
                     ),
+                    if (sortedEntries.isNotEmpty)
+                      pw.LineDataSet(
+                        color: PdfColors.green,
+                        drawPoints: false,
+                        lineWidth: 2,
+                        data: [
+                          pw.PointChartValue(0, goalHours.toDouble()),
+                          pw.PointChartValue(
+                            (sortedEntries.length - 1).toDouble(),
+                            goalHours.toDouble(),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               )
             else
               pw.Center(child: pw.Text("Aucune donnée pour cette période")),
 
-            pw.SizedBox(height: 40),
-
+            if (isLandscape)
+              pw.NewPage(), // Nouvelle page seulement pour le mode paysage (mensuel)
+            if (!isLandscape) pw.SizedBox(height: 20),
             // DATA TABLE
             pw.Text(
               "Détail des sessions",
@@ -151,14 +183,20 @@ class PdfService {
             pw.SizedBox(height: 10),
             pw.TableHelper.fromTextArray(
               context: context,
-              headers: ["Date", "Temps de port", "Objectif (${goalHours}h)"],
-              data: tableEntries.map((e) {
-                final date = DateFormat('dd/MM/yyyy').format(e.key);
-                final duration = "${(e.value / 60).toStringAsFixed(1)}h";
-                final goalMet = e.value >= targetMinutes
-                    ? "Atteint"
-                    : "Insuffisant";
-                return [date, duration, goalMet];
+              headers: ["Date", "Début", "Fin", "Durée", "Sticker"],
+              data: periodSessions.map((s) {
+                final date = DateFormat('dd/MM/yyyy').format(s.startTime);
+                final start = DateFormat('HH:mm').format(s.startTime);
+                final end = DateFormat('HH:mm').format(s.endTime!);
+                final diff = s.endTime!.difference(s.startTime);
+                final duration = "${diff.inHours}h ${diff.inMinutes % 60}min";
+
+                String stickerName = "Standard";
+                if (s.stickerId != null) {
+                  stickerName = s.stickerId.toString();
+                }
+
+                return [date, start, end, duration, stickerName];
               }).toList(),
               headerStyle: pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
@@ -170,11 +208,6 @@ class PdfService {
                   bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
                 ),
               ),
-              cellAlignments: {
-                0: pw.Alignment.centerLeft,
-                1: pw.Alignment.centerRight,
-                2: pw.Alignment.centerRight,
-              },
             ),
 
             pw.Padding(

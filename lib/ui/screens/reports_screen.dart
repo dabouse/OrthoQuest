@@ -7,6 +7,9 @@ import '../../services/database_service.dart';
 import 'pdf_preview_screen.dart';
 import '../../providers/timer_provider.dart';
 import '../../utils/app_theme.dart';
+import '../../models/session.dart';
+import '../../utils/session_utils.dart';
+import '../../utils/date_utils.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -19,9 +22,12 @@ enum ReportViewMode { week, month }
 
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Map<DateTime, int> _allStats = {};
+  List<Session> _allSessions = [];
   bool _isLoading = true;
   ReportViewMode _viewMode = ReportViewMode.week;
   DateTime _focusDate = DateTime.now();
+  DateTime? _selectedDate; // Pour afficher le détail d'un jour spécifique
+  int? _selectedSessionId; // Pour mettre en surbrillance une session spécifique
 
   @override
   void initState() {
@@ -31,9 +37,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   Future<void> _loadStats() async {
     final stats = await DatabaseService().getDailySummaries();
+    final sessions = await DatabaseService().getSessions();
     setState(() {
       _allStats = stats;
+      _allSessions = sessions;
       _isLoading = false;
+      _selectedDate = DateTime(
+        _focusDate.year,
+        _focusDate.month,
+        _focusDate.day,
+      );
     });
   }
 
@@ -64,6 +77,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       } else {
         _focusDate = DateTime(_focusDate.year, _focusDate.month + delta, 1);
       }
+      // Réinitialiser la sélection lors du changement de période
+      _selectedDate = null;
+      _selectedSessionId = null;
     });
   }
 
@@ -92,8 +108,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         ? 0
         : periodStats.values.reduce(math.max);
 
-    // Dynamic scale: max of data + 15% margin, but at least 1 hour
-    double chartMaxY = math.max(60.0, maxMinutes * 1.15);
+    // Dynamic scale: Max between data and goal, plus 1h30 to avoid clipping labels
+    double chartMaxY =
+        math.max(targetMins.toDouble(), maxMinutes.toDouble()) + 90;
 
     double avgMinutes = daysInPeriod == 0 ? 0 : totalMinutes / daysInPeriod;
 
@@ -139,6 +156,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     children: [
                       // View Mode Selector
                       SegmentedButton<ReportViewMode>(
+                        style: SegmentedButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.05),
+                          selectedBackgroundColor: AppTheme.primaryColor
+                              .withValues(alpha: 0.2),
+                          selectedForegroundColor: AppTheme.primaryColor,
+                          foregroundColor: Colors.white70,
+                          side: BorderSide(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         segments: const [
                           ButtonSegment(
                             value: ReportViewMode.week,
@@ -155,6 +185,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         onSelectionChanged: (newSelection) {
                           setState(() {
                             _viewMode = newSelection.first;
+                            _selectedDate = null;
+                            _selectedSessionId = null;
                           });
                         },
                       ),
@@ -215,44 +247,91 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               maxY: chartMaxY,
                               extraLinesData: ExtraLinesData(
                                 horizontalLines: [
-                                  if (targetMins <= chartMaxY)
-                                    HorizontalLine(
-                                      y: targetMins.toDouble(),
-                                      color: Colors.green.withValues(
-                                        alpha: 0.5,
+                                  HorizontalLine(
+                                    y: targetMins.toDouble(),
+                                    color: Colors.green.withValues(alpha: 0.6),
+                                    strokeWidth: 2,
+                                    dashArray: [5, 5],
+                                    label: HorizontalLineLabel(
+                                      show: true,
+                                      alignment: Alignment.topRight,
+                                      padding: const EdgeInsets.only(
+                                        right: 5,
+                                        bottom:
+                                            12, // Augmenté pour monter le texte au-dessus de la ligne
                                       ),
-                                      strokeWidth: 2,
-                                      dashArray: [5, 5],
-                                      label: HorizontalLineLabel(
-                                        show: true,
-                                        alignment: Alignment.topRight,
-                                        padding: const EdgeInsets.only(
-                                          right: 5,
-                                          bottom: 2,
-                                        ),
-                                        style: const TextStyle(
-                                          color: Colors.green,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        labelResolver: (line) => 'Objectif',
+                                      style: const TextStyle(
+                                        color: Colors.green,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
                                       ),
+                                      labelResolver: (line) => 'Objectif',
                                     ),
+                                  ),
                                 ],
                               ),
                               barTouchData: BarTouchData(
                                 enabled: true,
-                                touchTooltipData: BarTouchTooltipData(
-                                  getTooltipItem:
-                                      (group, groupIndex, rod, rodIndex) {
-                                        return BarTooltipItem(
-                                          '${(rod.toY / 60).toStringAsFixed(1)}h',
-                                          const TextStyle(
-                                            color: AppTheme.primaryColor,
-                                          ),
+                                handleBuiltInTouches: false,
+                                touchCallback: (FlTouchEvent event, barResponse) {
+                                  if (event is! FlTapUpEvent ||
+                                      barResponse == null ||
+                                      barResponse.spot == null) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    final index =
+                                        barResponse.spot!.touchedBarGroupIndex;
+                                    final stackIndex =
+                                        barResponse.spot!.touchedStackItemIndex;
+
+                                    final date = startOfPeriod.add(
+                                      Duration(days: index),
+                                    );
+
+                                    // Récupérer et trier les sessions de ce jour
+                                    final daySessions = _allSessions.where((s) {
+                                      if (s.endTime == null) return false;
+                                      return DateUtils.isSameDay(
+                                        OrthoDateUtils.getReportingDate(
+                                          s.startTime,
+                                        ),
+                                        DateTime(
+                                          date.year,
+                                          date.month,
+                                          date.day,
+                                        ),
+                                      );
+                                    }).toList();
+                                    daySessions.sort(
+                                      (a, b) =>
+                                          a.startTime.compareTo(b.startTime),
+                                    );
+
+                                    if (stackIndex >= 0 &&
+                                        stackIndex < daySessions.length) {
+                                      final session = daySessions[stackIndex];
+                                      if (_selectedSessionId == session.id) {
+                                        _selectedSessionId = null;
+                                        _selectedDate = null;
+                                      } else {
+                                        _selectedSessionId = session.id;
+                                        _selectedDate = DateTime(
+                                          date.year,
+                                          date.month,
+                                          date.day,
                                         );
-                                      },
-                                ),
+                                      }
+                                    } else {
+                                      _selectedDate = DateTime(
+                                        date.year,
+                                        date.month,
+                                        date.day,
+                                      );
+                                      _selectedSessionId = null;
+                                    }
+                                  });
+                                },
                               ),
                               titlesData: FlTitlesData(
                                 show: true,
@@ -312,26 +391,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     reservedSize: 45,
+                                    interval: chartMaxY > 600 ? 120 : 60,
                                     getTitlesWidget: (value, meta) {
-                                      // Dynamic interval for labels
-                                      double interval = 60; // 1h
-                                      if (chartMaxY > 600) {
-                                        interval = 240; // 4h
-                                      } else if (chartMaxY > 300) {
-                                        interval = 120; // 2h
-                                      } else if (chartMaxY < 120) {
-                                        interval = 30; // 30m
+                                      // Empêche d'afficher le titre max s'il est trop proche d'une graduation régulière
+                                      if (value == meta.max &&
+                                          value %
+                                                  (chartMaxY > 600
+                                                      ? 120
+                                                      : 60) !=
+                                              0) {
+                                        return const SizedBox.shrink();
                                       }
 
-                                      if (value % interval == 0) {
-                                        if (value >= 60) {
-                                          return Text(
-                                            '${(value / 60).toStringAsFixed(value % 60 == 0 ? 0 : 1)}h',
-                                          );
-                                        } else if (value > 0) {
-                                          return Text('${value.toInt()}m');
-                                        }
-                                        return const Text('0');
+                                      if (value %
+                                              (chartMaxY > 600 ? 120 : 60) ==
+                                          0) {
+                                        return Text(
+                                          '${(value / 60).toInt()}h',
+                                          style: const TextStyle(fontSize: 10),
+                                        );
                                       }
                                       return const SizedBox.shrink();
                                     },
@@ -349,11 +427,23 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 drawVerticalLine: false,
                                 horizontalInterval: chartMaxY > 600 ? 120 : 60,
                                 getDrawingHorizontalLine: (value) => FlLine(
-                                  color: Colors.grey.withValues(alpha: 0.05),
+                                  color: Colors.white.withValues(alpha: 0.08),
                                   strokeWidth: 1,
                                 ),
                               ),
-                              borderData: FlBorderData(show: false),
+                              borderData: FlBorderData(
+                                show: true,
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.15),
+                                    width: 1,
+                                  ),
+                                  left: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.15),
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
                               barGroups: List.generate(daysInPeriod, (index) {
                                 final date = startOfPeriod.add(
                                   Duration(days: index),
@@ -364,20 +454,67 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   date.day,
                                 );
 
-                                int minutes = _allStats[normalizedDate] ?? 0;
+                                // Récupérer et trier les sessions de ce jour
+                                final daySessions = _allSessions.where((s) {
+                                  if (s.endTime == null) return false;
+                                  return DateUtils.isSameDay(
+                                    OrthoDateUtils.getReportingDate(
+                                      s.startTime,
+                                    ),
+                                    normalizedDate,
+                                  );
+                                }).toList();
+                                daySessions.sort(
+                                  (a, b) => a.startTime.compareTo(b.startTime),
+                                );
+
+                                List<BarChartRodStackItem> stackItems = [];
+                                double currentY = 0;
+
+                                for (var s in daySessions) {
+                                  final dur = s.durationInMinutes.toDouble();
+                                  final stickerId = s.stickerId;
+                                  final isSelected = s.id == _selectedSessionId;
+                                  Color color =
+                                      (stickerId != null &&
+                                          SessionUtils.stickers.containsKey(
+                                            stickerId,
+                                          ))
+                                      ? SessionUtils
+                                                .stickers[stickerId]!['color']
+                                            as Color
+                                      : AppTheme.primaryColor.withValues(
+                                          alpha: 0.5,
+                                        );
+
+                                  if (_selectedSessionId != null &&
+                                      !isSelected) {
+                                    color = color.withValues(alpha: 0.2);
+                                  }
+
+                                  stackItems.add(
+                                    BarChartRodStackItem(
+                                      currentY,
+                                      currentY + dur,
+                                      color,
+                                    ),
+                                  );
+                                  currentY += dur;
+                                }
 
                                 return BarChartGroupData(
                                   x: index,
                                   barRods: [
                                     BarChartRodData(
-                                      toY: minutes.toDouble(),
-                                      color: minutes >= targetMins
-                                          ? AppTheme.successColor
-                                          : AppTheme.warningColor,
+                                      toY: currentY,
+                                      rodStackItems: stackItems,
                                       width: _viewMode == ReportViewMode.week
                                           ? 22
                                           : 8,
                                       borderRadius: BorderRadius.circular(4),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.05,
+                                      ),
                                     ),
                                   ],
                                 );
@@ -386,6 +523,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 20),
+                      // Stickers Timeline
+                      _buildStickersTimeline(startOfPeriod, daysInPeriod),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -394,29 +535,217 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Widget _buildSummaryCard(String title, String value) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-        child: Column(
-          children: [
-            Text(
-              title,
-              style: const TextStyle(color: Colors.white60, fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryColor,
-              ),
-            ),
-          ],
+  Widget _buildStickersTimeline(DateTime startOfPeriod, int daysInPeriod) {
+    final endOfPeriod = startOfPeriod.add(Duration(days: daysInPeriod));
+
+    final filteredSessions = _allSessions.where((s) {
+      if (s.endTime == null) return false;
+      final sessionDate = OrthoDateUtils.getReportingDate(s.startTime);
+
+      // Si un jour est sélectionné, on filtre. Sinon on montre toute la période.
+      if (_selectedDate != null) {
+        return DateUtils.isSameDay(sessionDate, _selectedDate!);
+      }
+
+      return (sessionDate.isAtSameMomentAs(startOfPeriod) ||
+              sessionDate.isAfter(startOfPeriod)) &&
+          sessionDate.isBefore(endOfPeriod);
+    }).toList();
+
+    filteredSessions.sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    if (filteredSessions.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Text(
+          _selectedDate != null
+              ? "Aucun sticker pour ce jour"
+              : "Aucun sticker sur cette période",
+          style: const TextStyle(
+            color: Colors.white54,
+            fontStyle: FontStyle.italic,
+          ),
         ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _selectedDate != null
+                    ? "Sessions du ${DateFormat('dd MMMM', 'fr_FR').format(_selectedDate!)}"
+                    : "Historique de la période",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (_selectedDate != null)
+                Text(
+                  "${(_allStats[_selectedDate!] ?? 0) ~/ 60}h ${(_allStats[_selectedDate!] ?? 0) % 60}min",
+                  style: const TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 90,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: filteredSessions.length,
+            itemBuilder: (context, index) {
+              final session = filteredSessions[index];
+              final stickerId = session.stickerId;
+              if (stickerId == null ||
+                  !SessionUtils.stickers.containsKey(stickerId)) {
+                return const SizedBox.shrink();
+              }
+              final data = SessionUtils.stickers[stickerId]!;
+
+              final isSelected = session.id == _selectedSessionId;
+              final isFromSelectedDay =
+                  _selectedDate != null &&
+                  DateUtils.isSameDay(
+                    OrthoDateUtils.getReportingDate(session.startTime),
+                    _selectedDate!,
+                  );
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (_selectedSessionId == session.id) {
+                      _selectedSessionId = null;
+                      _selectedDate = null;
+                    } else {
+                      _selectedSessionId = session.id;
+                      _selectedDate = OrthoDateUtils.getReportingDate(
+                        session.startTime,
+                      );
+                    }
+                  });
+                },
+                child: Container(
+                  width: 75,
+                  margin: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? (data['color'] as Color).withValues(alpha: 0.15)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    border: isSelected
+                        ? Border.all(color: data['color'] as Color, width: 1)
+                        : null,
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? (data['color'] as Color).withValues(alpha: 0.2)
+                              : Colors.white.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: data['color'] as Color,
+                            width: isSelected ? 3 : 2,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: (data['color'] as Color).withValues(
+                                      alpha: 0.6,
+                                    ),
+                                    blurRadius: 15,
+                                    spreadRadius: 2,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Icon(
+                          data['icon'] as IconData,
+                          color: data['color'] as Color,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${DateFormat('dd/MM').format(session.startTime)}\n${DateFormat('HH:mm').format(session.startTime)}",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: isSelected || isFromSelectedDay
+                              ? Colors.white
+                              : Colors.white60,
+                          fontSize: 9,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryCard(String title, String value) {
+    return Container(
+      width: 150,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryColor,
+              fontFamily: 'Orbitron',
+              letterSpacing: 1,
+            ),
+          ),
+        ],
       ),
     );
   }

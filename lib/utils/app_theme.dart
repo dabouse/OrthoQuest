@@ -45,7 +45,7 @@ class AppTheme {
         surface: Color(0xFF1E1E2E), // Solid surface color for M3 components
         error: errorColor,
       ),
-      textTheme: GoogleFonts.outfitTextTheme(
+      textTheme: GoogleFonts.orbitronTextTheme(
         ThemeData.dark().textTheme,
       ).apply(bodyColor: Colors.white, displayColor: Colors.white),
       scaffoldBackgroundColor: const Color(0xFF1A1A2E), // Fallback
@@ -75,7 +75,7 @@ class AppTheme {
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
-        contentTextStyle: GoogleFonts.outfit(
+        contentTextStyle: GoogleFonts.orbitron(
           color: Colors.white70,
           fontSize: 16,
         ),
@@ -90,7 +90,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: GoogleFonts.outfit(
+          textStyle: GoogleFonts.orbitron(
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),

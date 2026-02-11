@@ -6,6 +6,7 @@ import '../../providers/timer_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/date_utils.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/session_utils.dart';
 import '../widgets/vibrant_card.dart';
 
 import 'brushing_screen.dart';
@@ -89,11 +90,14 @@ class HomeScreen extends ConsumerWidget {
                                   final stickerId = session.stickerId;
 
                                   if (stickerId == null ||
-                                      !_stickers.containsKey(stickerId)) {
+                                      !SessionUtils.stickers.containsKey(
+                                        stickerId,
+                                      )) {
                                     return const SizedBox.shrink();
                                   }
 
-                                  final data = _stickers[stickerId]!;
+                                  final data =
+                                      SessionUtils.stickers[stickerId]!;
 
                                   return GestureDetector(
                                     onLongPress: () {
@@ -420,8 +424,8 @@ class HomeScreen extends ConsumerWidget {
                                 );
                               },
                               child: Container(
-                                width: 70,
-                                height: 70,
+                                width: 90,
+                                height: 90,
                                 decoration: BoxDecoration(
                                   color: AppTheme.primaryColor.withValues(
                                     alpha: 0.2,
@@ -443,7 +447,7 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                                 child: const Icon(
                                   Icons.cleaning_services,
-                                  size: 30,
+                                  size: 45,
                                   color: Colors
                                       .white, // White icon for max contrast
                                 ),
@@ -454,9 +458,15 @@ class HomeScreen extends ConsumerWidget {
                               "BROSSAGE",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                letterSpacing: 1.2,
+                                fontSize: 14,
+                                letterSpacing: 1.5,
                                 color: Colors.white70,
+                                shadows: [
+                                  BoxShadow(
+                                    color: AppTheme.primaryColor,
+                                    blurRadius: 10,
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -610,41 +620,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  String _formatDuration(Duration d) {
-    String twoDigits(int n) => n.toString().padLeft(2, "0");
-    String twoDigitMinutes = twoDigits(d.inMinutes.remainder(60));
-    String twoDigitSeconds = twoDigits(d.inSeconds.remainder(60));
-    return "${d.inHours}h$twoDigitMinutes:$twoDigitSeconds";
-  }
-
-  // Map of Sticker ID to Label and Icon
-  static const Map<int, Map<String, dynamic>> _stickers = {
-    0: {
-      'icon': Icons.sentiment_very_satisfied,
-      'label': 'Super !',
-      'color': AppTheme.successColor, // Neon Green
-    },
-    1: {
-      'icon': Icons.sentiment_satisfied,
-      'label': 'Bien',
-      'color': Color(0xFF00FFCC), // Neon Cyan-Green
-    },
-    2: {
-      'icon': Icons.sentiment_neutral,
-      'label': 'Moyen',
-      'color': AppTheme.warningColor, // Neon Yellow
-    },
-    3: {
-      'icon': Icons.sentiment_dissatisfied,
-      'label': 'Douleur',
-      'color': Colors.orange, // Bright Orange
-    },
-    4: {
-      'icon': Icons.sentiment_very_dissatisfied,
-      'label': 'Difficile',
-      'color': AppTheme.errorColor, // Neon Red
-    },
-  };
+  String _formatDuration(Duration d) => SessionUtils.formatDuration(d);
 
   void _showStopDialog(BuildContext context, WidgetRef ref) {
     showDialog(
@@ -660,7 +636,7 @@ class HomeScreen extends ConsumerWidget {
               spacing: 12,
               runSpacing: 12,
               alignment: WrapAlignment.center,
-              children: _stickers.entries.map((entry) {
+              children: SessionUtils.stickers.entries.map((entry) {
                 final id = entry.key;
                 final data = entry.value;
                 return Column(
@@ -744,7 +720,7 @@ class HomeScreen extends ConsumerWidget {
                 spacing: 12,
                 runSpacing: 12,
                 alignment: WrapAlignment.center,
-                children: _stickers.entries.map((entry) {
+                children: SessionUtils.stickers.entries.map((entry) {
                   final id = entry.key;
                   final data = entry.value;
                   return Column(
