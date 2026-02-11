@@ -24,7 +24,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFFF0F2FF), Color(0xFFE6E9FF)],
+        colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
       ),
     ),
     OnboardingPage(
@@ -36,31 +36,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFFE6F7FF), Color(0xFFD6EDFF)],
+        colors: [Color(0xFF1A1A2E), Color(0xFF240046)],
       ),
     ),
     OnboardingPage(
       icon: Icons.military_tech,
-      iconColor: Colors.amber,
+      iconColor: AppTheme.warningColor,
       title: "Gagne des Badges",
       description:
           "Débloque des badges en respectant tes objectifs et en faisant preuve de régularité. Plus tu es assidu, plus tu gagnes de récompenses !",
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFFFFF8E1), Color(0xFFFFECB3)],
+        colors: [Color(0xFF1A1A2E), Color(0xFF3E2723)],
       ),
     ),
     OnboardingPage(
       icon: Icons.cleaning_services,
-      iconColor: Colors.teal,
+      iconColor: AppTheme.successColor,
       title: "Brossage des Dents",
       description:
           "N'oublie pas de te brosser les dents ! Utilise le minuteur de brossage pour respecter les 2 minutes recommandées.",
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFFE0F2F1), Color(0xFFB2DFDB)],
+        colors: [Color(0xFF1A1A2E), Color(0xFF004D40)],
       ),
     ),
     OnboardingPage(
@@ -72,7 +72,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFFFFEBEE), Color(0xFFFFCDD2)],
+        colors: [Color(0xFF1A1A2E), Color(0xFF311B92)],
       ),
     ),
   ];
@@ -133,7 +133,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: Text(
                       "Passer",
                       style: TextStyle(
-                        color: Colors.grey.shade700,
+                        color: Colors.white70,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -233,7 +233,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               width: 140,
               height: 140,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.white.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
@@ -256,7 +256,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF2D2D2D),
+              color: Colors.white,
               height: 1.2,
             ),
           ),
@@ -267,11 +267,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text(
             page.description,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey.shade700,
-              height: 1.5,
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.white70, height: 1.5),
           ),
         ],
       ),

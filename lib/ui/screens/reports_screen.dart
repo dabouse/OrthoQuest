@@ -247,7 +247,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       (group, groupIndex, rod, rodIndex) {
                                         return BarTooltipItem(
                                           '${(rod.toY / 60).toStringAsFixed(1)}h',
-                                          const TextStyle(color: Colors.white),
+                                          const TextStyle(
+                                            color: AppTheme.primaryColor,
+                                          ),
                                         );
                                       },
                                 ),
@@ -370,8 +372,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     BarChartRodData(
                                       toY: minutes.toDouble(),
                                       color: minutes >= targetMins
-                                          ? Colors.green
-                                          : Colors.orange,
+                                          ? AppTheme.successColor
+                                          : AppTheme.warningColor,
                                       width: _viewMode == ReportViewMode.week
                                           ? 22
                                           : 8,
@@ -402,7 +404,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           children: [
             Text(
               title,
-              style: const TextStyle(color: Colors.grey, fontSize: 14),
+              style: const TextStyle(color: Colors.white60, fontSize: 14),
             ),
             const SizedBox(height: 4),
             Text(
@@ -410,7 +412,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.blue,
+                color: AppTheme.primaryColor,
               ),
             ),
           ],

@@ -74,7 +74,7 @@ class _OrthoQuestAppState extends ConsumerState<OrthoQuestApp>
     return MaterialApp(
       title: 'OrthoQuest',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
+      theme: AppTheme.darkTheme,
       home: FutureBuilder<bool>(
         future: _checkFirstLaunch(),
         builder: (context, snapshot) {

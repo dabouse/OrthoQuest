@@ -175,9 +175,9 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    progressColor: Colors.blue,
-                    backgroundColor: Colors.blue.shade100.withValues(
-                      alpha: 0.3,
+                    progressColor: AppTheme.primaryColor,
+                    backgroundColor: AppTheme.primaryColor.withValues(
+                      alpha: 0.1,
                     ),
                     circularStrokeCap: CircularStrokeCap.round,
                   ),
@@ -188,10 +188,11 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen> {
                       FloatingActionButton.large(
                         onPressed: _isRunning ? _stopTimer : _startTimer,
                         backgroundColor: _isRunning
-                            ? Colors.orange
-                            : Colors.green,
+                            ? AppTheme.warningColor
+                            : AppTheme.successColor,
                         child: Icon(
                           _isRunning ? Icons.pause : Icons.play_arrow,
+                          color: Colors.white,
                         ),
                       ),
                     ],
@@ -200,7 +201,7 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen> {
                   if (_isRunning)
                     const Text(
                       "Brosse bien partout !",
-                      style: TextStyle(fontSize: 18, color: Colors.blueGrey),
+                      style: TextStyle(fontSize: 18, color: Colors.white70),
                     ),
                 ],
               ),

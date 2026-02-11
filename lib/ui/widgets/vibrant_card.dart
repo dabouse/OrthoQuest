@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class VibrantCard extends StatelessWidget {
@@ -18,26 +19,35 @@ class VibrantCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      padding: padding ?? const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: color ?? Colors.white.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          width: width,
+          height: height,
+          padding: padding ?? const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: color ?? Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.2),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(
+                  0xFF00F0FF,
+                ).withValues(alpha: 0.1), // Neon Cyan glow
+                blurRadius: 20,
+                spreadRadius: -5,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-        ],
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.5),
-          width: 1,
+          child: child,
         ),
       ),
-      child: child,
     );
   }
 }

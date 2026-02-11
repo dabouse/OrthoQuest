@@ -149,7 +149,7 @@ class HomeScreen extends ConsumerWidget {
                         // Jauge circulaire principale
                         CircularPercentIndicator(
                           radius: 110.0,
-                          lineWidth: 18.0,
+                          lineWidth: 20.0,
                           percent: progress,
                           center: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -158,12 +158,19 @@ class HomeScreen extends ConsumerWidget {
                                 _formatDuration(totalDuration),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 32.0,
+                                  fontSize: 36.0,
+                                  color: Colors.white,
+                                  shadows: [
+                                    BoxShadow(
+                                      color: AppTheme.primaryColor,
+                                      blurRadius: 10,
+                                    ),
+                                  ],
                                 ),
                               ),
                               const Text(
                                 "Aujourd'hui",
-                                style: TextStyle(color: Colors.grey),
+                                style: TextStyle(color: Colors.white70),
                               ),
                               const SizedBox(height: 5),
                               Container(
@@ -172,12 +179,15 @@ class HomeScreen extends ConsumerWidget {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color:
-                                      totalDuration.inHours >=
-                                          timerState.dailyGoal
-                                      ? Colors.green.withAlpha(30)
-                                      : Colors.blue.withAlpha(30),
+                                  color: Colors.white.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color:
+                                        (totalDuration.inHours >=
+                                            timerState.dailyGoal)
+                                        ? AppTheme.successColor
+                                        : AppTheme.primaryColor,
+                                  ),
                                 ),
                                 child: Text(
                                   "Objectif: ${timerState.dailyGoal}h",
@@ -185,27 +195,39 @@ class HomeScreen extends ConsumerWidget {
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color:
-                                        totalDuration.inHours >=
-                                            timerState.dailyGoal
-                                        ? Colors.green
-                                        : Colors.blue,
+                                        (totalDuration.inHours >=
+                                            timerState.dailyGoal)
+                                        ? AppTheme.successColor
+                                        : AppTheme.primaryColor,
                                   ),
                                 ),
                               ),
                             ],
                           ),
                           progressColor:
-                              totalDuration.inHours >= timerState.dailyGoal + 1
-                              ? Colors.blue.shade700
-                              : (totalDuration.inHours >= timerState.dailyGoal
-                                    ? Colors.green
-                                    : (progress >= 0.5
-                                          ? Colors.orange
-                                          : Colors.redAccent)),
-                          backgroundColor: Colors.grey.shade100,
+                              (totalDuration.inHours >= timerState.dailyGoal)
+                              ? AppTheme.successColor
+                              : (progress >= 0.5
+                                    ? AppTheme.primaryColor
+                                    : AppTheme.accentColor),
+                          backgroundColor: Colors.white.withValues(alpha: 0.1),
                           circularStrokeCap: CircularStrokeCap.round,
                           animation: true,
                           animateFromLastPercent: true,
+                          footer: Padding(
+                            padding: const EdgeInsets.only(top: 10.0),
+                            child: Text(
+                              (totalDuration.inHours >= timerState.dailyGoal)
+                                  ? "OBJECTIF ATTEINT"
+                                  : "EN COURS...",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2.0,
+                                color: Colors.white54,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
                         ),
 
                         const SizedBox(height: 20),
@@ -243,7 +265,7 @@ class HomeScreen extends ConsumerWidget {
                                 "Niveau ${userState.level} • ${userState.xp % 1000} / 1000 XP",
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade600,
+                                  color: Colors.white60,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -277,42 +299,68 @@ class HomeScreen extends ConsumerWidget {
                               child: AvatarGlow(
                                 animate: isRunning,
                                 glowColor: isRunning
-                                    ? Colors.redAccent
-                                    : Colors.greenAccent,
+                                    ? AppTheme.errorColor
+                                    : AppTheme.successColor,
                                 child: Container(
-                                  width: 80,
-                                  height: 80,
+                                  width: 90,
+                                  height: 90,
                                   decoration: BoxDecoration(
-                                    color: isRunning
-                                        ? Colors.redAccent
-                                        : Colors.greenAccent,
+                                    gradient: LinearGradient(
+                                      colors: isRunning
+                                          ? [AppTheme.errorColor, Colors.black]
+                                          : [
+                                              AppTheme.successColor,
+                                              Colors.green.shade900,
+                                            ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
                                         color:
                                             (isRunning
-                                                    ? Colors.redAccent
-                                                    : Colors.greenAccent)
-                                                .withValues(alpha: 0.3),
-                                        blurRadius: 15,
-                                        offset: const Offset(0, 5),
+                                                    ? AppTheme.errorColor
+                                                    : AppTheme.successColor)
+                                                .withValues(alpha: 0.6),
+                                        blurRadius: 25,
+                                        spreadRadius: 2,
+                                        offset: const Offset(0, 0),
                                       ),
                                     ],
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
                                   ),
                                   child: Icon(
-                                    isRunning ? Icons.stop : Icons.play_arrow,
-                                    size: 40,
+                                    isRunning
+                                        ? Icons.stop
+                                        : Icons.power_settings_new,
+                                    size: 45,
                                     color: Colors.white,
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 12),
                             Text(
-                              isRunning ? "En cours..." : "Démarrer",
-                              style: const TextStyle(
+                              isRunning ? "ARRÊTER" : "DÉMARRER",
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                fontSize: 14,
+                                letterSpacing: 1.5,
+                                color: isRunning
+                                    ? AppTheme.errorColor
+                                    : AppTheme.successColor,
+                                shadows: [
+                                  BoxShadow(
+                                    color: (isRunning
+                                        ? AppTheme.errorColor
+                                        : AppTheme.successColor),
+                                    blurRadius: 10,
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -336,34 +384,41 @@ class HomeScreen extends ConsumerWidget {
                                 );
                               },
                               child: Container(
-                                width: 80,
-                                height: 80,
+                                width: 70,
+                                height: 70,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: Colors.white.withValues(alpha: 0.05),
                                   shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppTheme.secondaryColor.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                  ),
                                   boxShadow: [
                                     BoxShadow(
                                       color: AppTheme.secondaryColor.withValues(
-                                        alpha: 0.3,
+                                        alpha: 0.2,
                                       ),
                                       blurRadius: 15,
                                       offset: const Offset(0, 5),
                                     ),
                                   ],
                                 ),
-                                child: Icon(
+                                child: const Icon(
                                   Icons.cleaning_services,
-                                  size: 40,
+                                  size: 30,
                                   color: AppTheme.secondaryColor,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 12),
                             const Text(
-                              "Brossage",
+                              "BROSSAGE",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                fontSize: 12,
+                                letterSpacing: 1.2,
+                                color: Colors.white70,
                               ),
                             ),
                           ],
@@ -382,11 +437,11 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildStreakBadge(UserState userState) {
     final streak = userState.streak;
-    Color flameColor = Colors.blue;
+    Color flameColor = AppTheme.primaryColor;
     if (streak >= 7) {
-      flameColor = Colors.red;
+      flameColor = AppTheme.accentColor; // Pink for high streak
     } else if (streak >= 3) {
-      flameColor = Colors.orange;
+      flameColor = AppTheme.secondaryColor; // Purple for medium streak
     }
 
     return Container(
@@ -394,7 +449,14 @@ class HomeScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: flameColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: flameColor.withValues(alpha: 0.3), width: 2),
+        border: Border.all(color: flameColor.withValues(alpha: 0.5), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: flameColor.withValues(alpha: 0.2),
+            blurRadius: 10,
+            spreadRadius: -2,
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -403,6 +465,7 @@ class HomeScreen extends ConsumerWidget {
             streak >= 3 ? Icons.local_fire_department : Icons.ac_unit,
             color: flameColor,
             size: 24,
+            shadows: [BoxShadow(color: flameColor, blurRadius: 8)],
           ),
           const SizedBox(width: 8),
           Text(
@@ -411,6 +474,7 @@ class HomeScreen extends ConsumerWidget {
               fontWeight: FontWeight.bold,
               color: flameColor,
               fontSize: 16,
+              shadows: [BoxShadow(color: flameColor, blurRadius: 8)],
             ),
           ),
         ],
@@ -427,12 +491,13 @@ class HomeScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "3 derniers jours",
+          const Text(
+            "HISTORIQUE (3J)",
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Colors.grey.shade700,
+              color: Colors.white70,
+              letterSpacing: 1.2,
             ),
           ),
           const SizedBox(height: 12),
@@ -445,11 +510,11 @@ class HomeScreen extends ConsumerWidget {
               final targetMin = timerState.dailyGoal * 60;
               final percentage = (minutes / targetMin).clamp(0.0, 1.0);
 
-              Color barColor = Colors.redAccent;
+              Color barColor = AppTheme.errorColor;
               if (percentage >= 1.0) {
-                barColor = Colors.green;
+                barColor = AppTheme.successColor;
               } else if (percentage >= 0.5) {
-                barColor = Colors.orange;
+                barColor = AppTheme.warningColor;
               }
 
               return Expanded(
@@ -460,16 +525,25 @@ class HomeScreen extends ConsumerWidget {
                       Container(
                         height: 60,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
+                          color: Colors.white.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
                         ),
                         alignment: Alignment.bottomCenter,
                         child: FractionallySizedBox(
-                          heightFactor: percentage,
+                          heightFactor: percentage == 0 ? 0.05 : percentage,
                           child: Container(
                             decoration: BoxDecoration(
                               color: barColor,
                               borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: barColor.withValues(alpha: 0.4),
+                                  blurRadius: 8,
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -478,17 +552,14 @@ class HomeScreen extends ConsumerWidget {
                       Text(
                         "J-$daysAgo",
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+                          fontSize: 10,
+                          color: Colors.white60,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
                         "${(minutes / 60).toStringAsFixed(1)}h",
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey.shade500,
-                        ),
+                        style: TextStyle(fontSize: 10, color: Colors.white38),
                       ),
                     ],
                   ),

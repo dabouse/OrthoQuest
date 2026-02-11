@@ -44,7 +44,9 @@ class BadgesScreen extends ConsumerWidget {
       opacity: isUnlocked ? 1.0 : 0.6,
       child: VibrantCard(
         padding: const EdgeInsets.all(8),
-        color: isUnlocked ? Colors.white : Colors.white.withValues(alpha: 0.5),
+        color: isUnlocked
+            ? AppTheme.primaryColor.withValues(alpha: 0.1)
+            : Colors.white.withValues(alpha: 0.05),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -52,14 +54,14 @@ class BadgesScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: isUnlocked
-                    ? badge.color.withValues(alpha: 0.1)
-                    : Colors.grey.shade100,
+                    ? badge.color.withValues(alpha: 0.2)
+                    : Colors.white.withValues(alpha: 0.05),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 isUnlocked ? badge.icon : Icons.lock,
                 size: 28,
-                color: isUnlocked ? badge.color : Colors.grey,
+                color: isUnlocked ? badge.color : Colors.white38,
               ),
             ),
             const SizedBox(height: 8),
@@ -69,7 +71,7 @@ class BadgesScreen extends ConsumerWidget {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 11,
-                color: isUnlocked ? Colors.black87 : Colors.grey,
+                color: isUnlocked ? Colors.white : Colors.white38,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
