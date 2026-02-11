@@ -1,3 +1,8 @@
+/// Modèle représentant une session de port d'appareil.
+///
+/// [startTime] : Début de la session.
+/// [endTime] : Fin de la session (null si en cours).
+/// [stickerId] : Id du sticker associé (optionnel).
 class Session {
   final int? id;
   final DateTime startTime;
@@ -8,8 +13,12 @@ class Session {
 
   // Calculate duration in minutes, handling ongoing sessions
   int get durationInMinutes {
+    return duration.inMinutes;
+  }
+
+  Duration get duration {
     final end = endTime ?? DateTime.now();
-    return end.difference(startTime).inMinutes;
+    return end.difference(startTime);
   }
 
   Map<String, dynamic> toMap() {

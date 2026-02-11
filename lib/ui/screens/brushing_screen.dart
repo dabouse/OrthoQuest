@@ -1,83 +1,119 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:percent_indicator/percent_indicator.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:confetti/confetti.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/database_service.dart';
+import '../../providers/user_provider.dart';
+import '../../utils/app_theme.dart';
 
-class BrushingScreen extends StatefulWidget {
+class BrushingScreen extends ConsumerStatefulWidget {
   const BrushingScreen({super.key});
 
   @override
-  State<BrushingScreen> createState() => _BrushingScreenState();
+  ConsumerState<BrushingScreen> createState() => _BrushingScreenState();
 }
 
-class _BrushingScreenState extends State<BrushingScreen> {
-  late int _totalSeconds;
-  int _remainingSeconds = 120; // Default fallback
-  Timer? _timer;
+class _BrushingScreenState extends ConsumerState<BrushingScreen> {
+  late Timer _timer;
+  int _secondsRemaining = 120; // 2 minutes
   bool _isRunning = false;
+  late ConfettiController _confettiController;
   final AudioPlayer _audioPlayer = AudioPlayer();
-  // Placeholder Lottie URL - replace with local asset in production
-  final String _lottieUrl =
-      'https://assets10.lottiefiles.com/packages/lf20_33asonmr.json';
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 3),
+    );
   }
 
   Future<void> _loadSettings() async {
-    final durationStr = await DatabaseService().getSetting('brushing_duration');
+    final val = await DatabaseService().getSetting('brushing_duration');
+    final duration = int.tryParse(val ?? '120') ?? 120;
     setState(() {
-      _totalSeconds = int.tryParse(durationStr ?? '120') ?? 120;
-      _remainingSeconds = _totalSeconds;
+      _secondsRemaining = duration;
+      _totalDuration = duration;
     });
   }
 
-  void _toggleTimer() {
-    if (_isRunning) {
-      _timer?.cancel();
-      setState(() => _isRunning = false);
-    } else {
-      if (_remainingSeconds == 0) {
-        // Reset if finished
-        setState(() => _remainingSeconds = _totalSeconds);
-      }
-      setState(() => _isRunning = true);
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (_remainingSeconds > 0) {
-          setState(() => _remainingSeconds--);
-        } else {
-          _finishTimer();
-        }
-      });
-    }
+  // Track initial total to calculate progress correctly
+  int _totalDuration = 120;
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _confettiController.dispose();
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
-  void _finishTimer() async {
-    _timer?.cancel();
-    setState(() => _isRunning = false);
+  void _startTimer() {
+    if (_isRunning) return;
 
-    // Play sound
+    setState(() {
+      _isRunning = true;
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_secondsRemaining > 0) {
+          _secondsRemaining--;
+        } else {
+          _completeSession();
+        }
+      });
+    });
+  }
+
+  Future<void> _completeSession() async {
+    _timer.cancel();
+    setState(() {
+      _isRunning = false;
+      _secondsRemaining = _totalDuration;
+    });
+
+    // Award XP & Check Badges
+    ref.read(userProvider.notifier).recordBrushing();
+
+    // Play Sound
     try {
+      // Ensure asset is declared in pubspec.yaml
       await _audioPlayer.play(AssetSource('sounds/ding.mp3'));
     } catch (e) {
       debugPrint("Error playing sound: $e");
     }
 
+    // Celebrate
+    _confettiController.play();
+
+    // Show Dialog
     if (mounted) {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text("Brossage terminé !"),
-          content: const Text("Tes dents sont toutes propres ! ✨"),
+          title: const Text("Brossage Terminé !"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("+50 XP"),
+              const SizedBox(height: 10),
+              Lottie.network(
+                'https://assets10.lottiefiles.com/packages/lf20_touohxv0.json', // Star animation
+                height: 100,
+                repeat: false,
+              ),
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context); // Close dialog
-                Navigator.pop(context); // Go back to home
+                Navigator.pop(context); // Go back home
               },
               child: const Text("Super !"),
             ),
@@ -87,92 +123,89 @@ class _BrushingScreenState extends State<BrushingScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
-  String _formatTime(int seconds) {
-    final m = seconds ~/ 60;
-    final s = seconds % 60;
-    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  void _stopTimer() {
+    _timer.cancel();
+    setState(() {
+      _isRunning = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Prevent division by zero
-    double percent = _totalSeconds > 0
-        ? (_totalSeconds - _remainingSeconds) / _totalSeconds
-        : 0.0;
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Timer Brossage"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Animation
-            SizedBox(
-              height: 250,
-              child: Lottie.network(
-                _lottieUrl,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(
-                    Icons.cleaning_services,
-                    size: 100,
-                    color: Colors.blueAccent,
-                  );
-                },
-                animate: _isRunning,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(title: const Text("Brossage")),
+      body: AppBackground(
+        child: SafeArea(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                shouldLoop: false,
+                colors: const [
+                  Colors.green,
+                  Colors.blue,
+                  Colors.pink,
+                  Colors.orange,
+                  Colors.purple,
+                ],
               ),
-            ),
-            const SizedBox(height: 40),
-
-            // Timer Gauge
-            CircularPercentIndicator(
-              radius: 100.0,
-              lineWidth: 15.0,
-              percent: percent.clamp(0.0, 1.0),
-              center: Text(
-                _formatTime(_remainingSeconds),
-                style: const TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
-                ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Lottie.network(
+                    'https://assets10.lottiefiles.com/packages/lf20_metk4x85.json',
+                    height: 200,
+                    animate: _isRunning,
+                  ),
+                  const SizedBox(height: 40),
+                  CircularPercentIndicator(
+                    radius: 100.0,
+                    lineWidth: 15.0,
+                    percent: (1.0 - (_secondsRemaining / _totalDuration)).clamp(
+                      0.0,
+                      1.0,
+                    ),
+                    center: Text(
+                      "${(_secondsRemaining ~/ 60).toString().padLeft(2, '0')}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}",
+                      style: const TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    progressColor: Colors.blue,
+                    backgroundColor: Colors.blue.shade100.withValues(
+                      alpha: 0.3,
+                    ),
+                    circularStrokeCap: CircularStrokeCap.round,
+                  ),
+                  const SizedBox(height: 60),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FloatingActionButton.large(
+                        onPressed: _isRunning ? _stopTimer : _startTimer,
+                        backgroundColor: _isRunning
+                            ? Colors.orange
+                            : Colors.green,
+                        child: Icon(
+                          _isRunning ? Icons.pause : Icons.play_arrow,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  if (_isRunning)
+                    const Text(
+                      "Brosse bien partout !",
+                      style: TextStyle(fontSize: 18, color: Colors.blueGrey),
+                    ),
+                ],
               ),
-              progressColor: Colors.blue,
-              backgroundColor: Colors.blue.shade100,
-              circularStrokeCap: CircularStrokeCap.round,
-              animation: true,
-              animateFromLastPercent: true,
-            ),
-
-            const SizedBox(height: 50),
-
-            // Controls
-            FloatingActionButton.large(
-              onPressed: _toggleTimer,
-              backgroundColor: _isRunning ? Colors.orange : Colors.blue,
-              child: Icon(_isRunning ? Icons.pause : Icons.play_arrow),
-            ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () {
-                _timer?.cancel();
-                setState(() {
-                  _isRunning = false;
-                  _remainingSeconds = _totalSeconds;
-                });
-              },
-              child: const Text("Réinitialiser"),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
