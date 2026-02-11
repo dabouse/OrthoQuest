@@ -42,7 +42,7 @@ class AppTheme {
         primary: primaryColor,
         secondary: secondaryColor,
         tertiary: accentColor,
-        surface: Colors.transparent, // Important for glassmorphism
+        surface: Color(0xFF1E1E2E), // Solid surface color for M3 components
         error: errorColor,
       ),
       textTheme: GoogleFonts.outfitTextTheme(
@@ -62,17 +62,8 @@ class AppTheme {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      /* cardTheme: CardTheme(
-        color: const Color(0xFF1A1A2E).withValues(alpha: 0.8),
-        elevation: 8,
-        shadowColor: Colors.black.withValues(alpha: 0.4),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-      ), */
       iconTheme: const IconThemeData(color: Colors.white),
-      /* dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: const Color(0xFF1A1A2E).withValues(alpha: 0.95),
         elevation: 10,
         shape: RoundedRectangleBorder(
@@ -88,7 +79,7 @@ class AppTheme {
           color: Colors.white70,
           fontSize: 16,
         ),
-      ), */
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: secondaryColor,

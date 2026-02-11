@@ -96,7 +96,7 @@ class HomeScreen extends ConsumerWidget {
                                   final data = _stickers[stickerId]!;
 
                                   return GestureDetector(
-                                    onTap: () {
+                                    onLongPress: () {
                                       if (session.id != null) {
                                         _showEditStickerDialog(
                                           context,
@@ -105,6 +105,8 @@ class HomeScreen extends ConsumerWidget {
                                         );
                                       }
                                     },
+                                    onTap:
+                                        () {}, // Triggered by Tooltip triggerMode
                                     child: TweenAnimationBuilder<double>(
                                       tween: Tween(begin: 0.0, end: 1.0),
                                       duration: Duration(
@@ -122,14 +124,48 @@ class HomeScreen extends ConsumerWidget {
                                           right: 8.0,
                                         ),
                                         child: Tooltip(
+                                          triggerMode: TooltipTriggerMode.tap,
+                                          preferBelow: true,
+                                          verticalOffset: 20,
+                                          decoration: BoxDecoration(
+                                            color: const Color(
+                                              0xFFEEEEEE,
+                                            ).withValues(alpha: 0.95),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          textStyle: const TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
                                           message:
                                               "${_formatDuration(session.duration)} - ${data['label']}",
                                           child: Container(
                                             padding: const EdgeInsets.all(6),
                                             decoration: BoxDecoration(
-                                              color: (data['color'] as Color)
-                                                  .withValues(alpha: 0.15),
+                                              color: Colors.white.withValues(
+                                                alpha: 0.1,
+                                              ), // Effet verre
                                               shape: BoxShape.circle,
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color:
+                                                      (data['color'] as Color)
+                                                          .withValues(
+                                                            alpha: 0.3,
+                                                          ),
+                                                  blurRadius: 8,
+                                                  spreadRadius: 1,
+                                                ),
+                                              ],
+                                              border: Border.all(
+                                                color:
+                                                    data['color']
+                                                        as Color, // Bordure solide
+                                                width: 1.5,
+                                              ),
                                             ),
                                             child: Icon(
                                               data['icon'] as IconData,
@@ -387,17 +423,18 @@ class HomeScreen extends ConsumerWidget {
                                 width: 70,
                                 height: 70,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.05),
+                                  color: AppTheme.primaryColor.withValues(
+                                    alpha: 0.2,
+                                  ), // Cyan tint
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: AppTheme.secondaryColor.withValues(
-                                      alpha: 0.5,
-                                    ),
-                                  ),
+                                    color: AppTheme.primaryColor,
+                                    width: 2,
+                                  ), // Solid border
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppTheme.secondaryColor.withValues(
-                                        alpha: 0.2,
+                                      color: AppTheme.primaryColor.withValues(
+                                        alpha: 0.3,
                                       ),
                                       blurRadius: 15,
                                       offset: const Offset(0, 5),
@@ -407,7 +444,8 @@ class HomeScreen extends ConsumerWidget {
                                 child: const Icon(
                                   Icons.cleaning_services,
                                   size: 30,
-                                  color: AppTheme.secondaryColor,
+                                  color: Colors
+                                      .white, // White icon for max contrast
                                 ),
                               ),
                             ),
@@ -447,14 +485,14 @@ class HomeScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: flameColor.withValues(alpha: 0.1),
+        color: Colors.white.withValues(alpha: 0.1), // Effet verre
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: flameColor.withValues(alpha: 0.5), width: 1),
+        border: Border.all(color: flameColor, width: 2), // Bordure solide
         boxShadow: [
           BoxShadow(
             color: flameColor.withValues(alpha: 0.2),
-            blurRadius: 10,
-            spreadRadius: -2,
+            blurRadius: 15,
+            spreadRadius: 1,
           ),
         ],
       ),
@@ -465,7 +503,7 @@ class HomeScreen extends ConsumerWidget {
             streak >= 3 ? Icons.local_fire_department : Icons.ac_unit,
             color: flameColor,
             size: 24,
-            shadows: [BoxShadow(color: flameColor, blurRadius: 8)],
+            shadows: [BoxShadow(color: flameColor, blurRadius: 10)],
           ),
           const SizedBox(width: 8),
           Text(
@@ -474,7 +512,7 @@ class HomeScreen extends ConsumerWidget {
               fontWeight: FontWeight.bold,
               color: flameColor,
               fontSize: 16,
-              shadows: [BoxShadow(color: flameColor, blurRadius: 8)],
+              shadows: [BoxShadow(color: flameColor, blurRadius: 10)],
             ),
           ),
         ],
@@ -584,29 +622,28 @@ class HomeScreen extends ConsumerWidget {
     0: {
       'icon': Icons.sentiment_very_satisfied,
       'label': 'Super !',
-      'color': Colors.green,
+      'color': AppTheme.successColor, // Neon Green
     },
     1: {
       'icon': Icons.sentiment_satisfied,
       'label': 'Bien',
-      'color': Colors.lightGreen,
+      'color': Color(0xFF00FFCC), // Neon Cyan-Green
     },
     2: {
       'icon': Icons.sentiment_neutral,
       'label': 'Moyen',
-      'color': Colors.amber,
+      'color': AppTheme.warningColor, // Neon Yellow
     },
     3: {
       'icon': Icons.sentiment_dissatisfied,
       'label': 'Douleur',
-      'color': Colors.orangeAccent,
+      'color': Colors.orange, // Bright Orange
     },
     4: {
       'icon': Icons.sentiment_very_dissatisfied,
       'label': 'Difficile',
-      'color': Colors.red,
+      'color': AppTheme.errorColor, // Neon Red
     },
-    5: {'icon': Icons.bed, 'label': 'Nuit', 'color': Colors.indigo},
   };
 
   void _showStopDialog(BuildContext context, WidgetRef ref) {
@@ -639,10 +676,23 @@ class HomeScreen extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: (data['color'] as Color).withValues(
-                            alpha: 0.2,
-                          ),
+                          color: Colors.white.withValues(
+                            alpha: 0.1,
+                          ), // Effet verre
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: (data['color'] as Color).withValues(
+                                alpha: 0.3,
+                              ),
+                              blurRadius: 10,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                          border: Border.all(
+                            color: data['color'] as Color, // Bordure solide
+                            width: 2,
+                          ),
                         ),
                         child: Icon(
                           data['icon'] as IconData,
@@ -710,10 +760,23 @@ class HomeScreen extends ConsumerWidget {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: (data['color'] as Color).withValues(
-                              alpha: 0.2,
-                            ),
+                            color: Colors.white.withValues(
+                              alpha: 0.1,
+                            ), // Effet verre
                             shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: (data['color'] as Color).withValues(
+                                  alpha: 0.3,
+                                ),
+                                blurRadius: 10,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                            border: Border.all(
+                              color: data['color'] as Color, // Bordure solide
+                              width: 2,
+                            ),
                           ),
                           child: Icon(
                             data['icon'] as IconData,
