@@ -348,22 +348,30 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                           final date = startOfPeriod.add(
                                             Duration(days: index),
                                           );
-
-                                          // For Month view, don't show all titles to avoid overlap
+                                          final today = DateTime.now();
+                                          final isToday = DateUtils.isSameDay(
+                                            date,
+                                            today,
+                                          );
+                                          // For Month view, rotate labels to fit everyone
                                           if (_viewMode ==
                                               ReportViewMode.month) {
-                                            if (index % 5 != 0 &&
-                                                index != daysInPeriod - 1) {
-                                              return const SizedBox.shrink();
-                                            }
                                             return Padding(
                                               padding: const EdgeInsets.only(
-                                                top: 8.0,
+                                                top: 12.0,
                                               ),
-                                              child: Text(
-                                                "${date.day}",
-                                                style: const TextStyle(
-                                                  fontSize: 10,
+                                              child: Transform.rotate(
+                                                angle: -1.5708, // 90 degrés
+                                                child: Text(
+                                                  "${date.day}",
+                                                  style: TextStyle(
+                                                    fontSize: 9,
+                                                    fontWeight:
+                                                        FontWeight.normal,
+                                                    color: isToday
+                                                        ? AppTheme.primaryColor
+                                                        : Colors.white60,
+                                                  ),
                                                 ),
                                               ),
                                             );
@@ -378,8 +386,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                                 'E',
                                                 'fr_FR',
                                               ).format(date),
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 11,
+                                                fontWeight: FontWeight.normal,
+                                                color: isToday
+                                                    ? AppTheme.primaryColor
+                                                    : Colors.white60,
                                               ),
                                             ),
                                           );
@@ -501,6 +513,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   currentY += dur;
                                 }
 
+                                final today = DateTime.now();
+                                final isToday = DateUtils.isSameDay(
+                                  normalizedDate,
+                                  today,
+                                );
+
                                 return BarChartGroupData(
                                   x: index,
                                   barRods: [
@@ -511,11 +529,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                           ? 22
                                           : 8,
                                       borderRadius: BorderRadius.circular(4),
-                                      color: Colors.white.withValues(
-                                        alpha: 0.05,
-                                      ),
+                                      borderSide: isToday
+                                          ? const BorderSide(
+                                              color: Colors.white,
+                                              width: 1.5,
+                                            )
+                                          : const BorderSide(
+                                              color: Colors.transparent,
+                                              width: 0,
+                                            ),
+                                      color: isToday
+                                          ? AppTheme.primaryColor.withValues(
+                                              alpha: 0.1,
+                                            )
+                                          : Colors.white.withValues(
+                                              alpha: 0.05,
+                                            ),
                                     ),
                                   ],
+                                  showingTooltipIndicators: const [],
                                 );
                               }),
                             ),

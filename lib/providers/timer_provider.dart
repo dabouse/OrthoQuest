@@ -197,6 +197,74 @@ class TimerNotifier extends Notifier<TimerState> {
     await _loadHistory(); // Refresh history
   }
 
+  /// Ajoute une session manuelle avec validation.
+  ///
+  /// Permet d'ajouter rétroactivement une session non enregistrée.
+  /// Retourne null si succès, ou un message d'erreur si échec de validation.
+  Future<String?> addManualSession({
+    required DateTime startTime,
+    required Duration duration,
+    int? stickerId,
+  }) async {
+    // Validation 1: Pas de session dans le futur
+    if (startTime.isAfter(DateTime.now())) {
+      return "La session ne peut pas être dans le futur";
+    }
+
+    // Validation 2: Durée valide
+    if (duration.inMinutes <= 0) {
+      return "La durée doit être supérieure à 0";
+    }
+    if (duration.inHours > 24) {
+      return "La durée ne peut pas dépasser 24 heures";
+    }
+
+    // Calculer l'heure de fin
+    final endTime = startTime.add(duration);
+
+    // Validation 3: Vérifier qu'il n'y a pas de chevauchement
+    final allSessions = await DatabaseService().getSessions();
+    for (var session in allSessions) {
+      final sessionStart = session.startTime;
+      final sessionEnd = session.endTime ?? DateTime.now();
+
+      // Vérifier si les intervalles se chevauchent
+      final overlaps =
+          (startTime.isBefore(sessionEnd) && endTime.isAfter(sessionStart));
+      if (overlaps) {
+        return "Cette session chevauche une session existante";
+      }
+    }
+
+    // Créer et insérer la session
+    final newSession = Session(
+      startTime: startTime,
+      endTime: endTime,
+      stickerId: stickerId,
+    );
+
+    try {
+      await DatabaseService().insertSession(newSession);
+
+      // Traiter la session pour XP et badges
+      await ref
+          .read(userProvider.notifier)
+          .processSessionCompletion(newSession);
+
+      // Rafraîchir les statistiques
+      await _loadDailyStats();
+      await _loadHistory();
+
+      // Rafraîchir le streak dans UserProvider
+      await ref.read(userProvider.notifier).refresh();
+
+      return null; // Succès
+    } catch (e) {
+      debugPrint('Erreur lors de l\'ajout de la session manuelle: $e');
+      return "Erreur lors de l'enregistrement de la session";
+    }
+  }
+
   void _startTicker() {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (timer) {

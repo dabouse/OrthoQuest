@@ -5,6 +5,7 @@ import '../../../providers/timer_provider.dart';
 import '../../../utils/app_theme.dart';
 import '../../../utils/session_utils.dart';
 import '../../screens/brushing_screen.dart';
+import '../add_manual_session_dialog.dart';
 
 class ActionButtons extends ConsumerWidget {
   const ActionButtons({super.key});
@@ -16,87 +17,13 @@ class ActionButtons extends ConsumerWidget {
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // Start/Stop Button
-        Expanded(
-          child: Column(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  if (isRunning) {
-                    _showStopDialog(context, ref);
-                  } else {
-                    ref.read(timerProvider.notifier).startSession();
-                  }
-                },
-                child: AvatarGlow(
-                  animate: isRunning,
-                  glowColor: isRunning
-                      ? AppTheme.errorColor
-                      : AppTheme.successColor,
-                  child: Container(
-                    width: 90,
-                    height: 90,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: isRunning
-                            ? [AppTheme.errorColor, Colors.black]
-                            : [AppTheme.successColor, Colors.green.shade900],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              (isRunning
-                                      ? AppTheme.errorColor
-                                      : AppTheme.successColor)
-                                  .withValues(alpha: 0.6),
-                          blurRadius: 25,
-                          spreadRadius: 2,
-                          offset: const Offset(0, 0),
-                        ),
-                      ],
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: Icon(
-                      isRunning ? Icons.stop : Icons.power_settings_new,
-                      size: 45,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                isRunning ? "ARRÊTER" : "DÉMARRER",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  letterSpacing: 1.5,
-                  color: isRunning
-                      ? AppTheme.errorColor
-                      : AppTheme.successColor,
-                  shadows: [
-                    BoxShadow(
-                      color: (isRunning
-                          ? AppTheme.errorColor
-                          : AppTheme.successColor),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(width: 16),
-
         // Brushing Button
         Expanded(
+          flex: 2,
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               GestureDetector(
                 onTap: () {
@@ -113,8 +40,8 @@ class ActionButtons extends ConsumerWidget {
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  width: 90,
-                  height: 90,
+                  width: 75,
+                  height: 75,
                   decoration: BoxDecoration(
                     color: isRunning
                         ? Colors.white.withValues(alpha: 0.05)
@@ -135,7 +62,7 @@ class ActionButtons extends ConsumerWidget {
                   ),
                   child: Icon(
                     Icons.cleaning_services,
-                    size: 45,
+                    size: 35,
                     color: isRunning ? Colors.white24 : Colors.white,
                   ),
                 ),
@@ -143,10 +70,11 @@ class ActionButtons extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 "BROSSAGE",
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  letterSpacing: 1.5,
+                  fontSize: 11,
+                  letterSpacing: 1.0,
                   color: isRunning ? Colors.white24 : Colors.white70,
                   shadows: [
                     if (!isRunning)
@@ -154,6 +82,148 @@ class ActionButtons extends ConsumerWidget {
                         color: AppTheme.primaryColor,
                         blurRadius: 10,
                       ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Start/Stop Button (Centered and Larger)
+        Expanded(
+          flex: 3,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  if (isRunning) {
+                    _showStopDialog(context, ref);
+                  } else {
+                    ref.read(timerProvider.notifier).startSession();
+                  }
+                },
+                child: AvatarGlow(
+                  animate: isRunning,
+                  glowColor: isRunning
+                      ? AppTheme.errorColor
+                      : AppTheme.successColor,
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isRunning
+                            ? [AppTheme.errorColor, Colors.black]
+                            : [AppTheme.successColor, Colors.green.shade900],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              (isRunning
+                                      ? AppTheme.errorColor
+                                      : AppTheme.successColor)
+                                  .withValues(alpha: 0.6),
+                          blurRadius: 25,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                      border: Border.all(color: Colors.white, width: 2.5),
+                    ),
+                    child: Icon(
+                      isRunning ? Icons.stop : Icons.power_settings_new,
+                      size: 50,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isRunning ? "ARRÊTER" : "DÉMARRER",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  letterSpacing: 1.2,
+                  color: isRunning
+                      ? AppTheme.errorColor
+                      : AppTheme.successColor,
+                  shadows: [
+                    BoxShadow(
+                      color: (isRunning
+                          ? AppTheme.errorColor
+                          : AppTheme.successColor),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Manual Add Button
+        Expanded(
+          flex: 2,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: () async {
+                  final result = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => const AddManualSessionDialog(),
+                  );
+                  if (result == true && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Session ajoutée avec succès !'),
+                        backgroundColor: AppTheme.successColor,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                },
+                child: Container(
+                  width: 75,
+                  height: 75,
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondaryColor.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppTheme.secondaryColor,
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.secondaryColor.withValues(alpha: 0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.edit_calendar,
+                    size: 35,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "AJOUTER",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  letterSpacing: 1.0,
+                  color: Colors.white70,
+                  shadows: [
+                    BoxShadow(color: AppTheme.secondaryColor, blurRadius: 10),
                   ],
                 ),
               ),
