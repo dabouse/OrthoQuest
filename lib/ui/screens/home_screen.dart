@@ -133,7 +133,8 @@ class HomeScreen extends ConsumerWidget {
         child: SafeArea(
           child: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+
               child: Column(
                 children: [
                   // Main Card avec Sessions + Gauge + 3 derniers jours + Level
@@ -326,7 +327,8 @@ class HomeScreen extends ConsumerWidget {
                           animation: true,
                           animateFromLastPercent: true,
                           footer: Padding(
-                            padding: const EdgeInsets.only(top: 10.0),
+                            padding: const EdgeInsets.only(top: 6.0),
+
                             child: Text(
                               (totalDuration.inHours >= timerState.dailyGoal)
                                   ? "OBJECTIF ATTEINT"
@@ -341,12 +343,12 @@ class HomeScreen extends ConsumerWidget {
                           ),
                         ),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
 
                         // Les 3 derniers jours (NOUVEAU - intégré ici)
                         _build3DaysHistory(timerState),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
 
                         // Level Bar inside the main card
                         GestureDetector(
@@ -372,27 +374,54 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    "Niveau ${userState.level} • ${userState.xp % 1000} / 1000 XP",
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white60,
-                                      fontWeight: FontWeight.bold,
+                              Text(
+                                "Niveau ${userState.level} • ${userState.xp % 1000} / 1000 XP",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+
+                              GestureDetector(
+                                onTap: () => _showXPInfo(context),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.warningColor.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: AppTheme.warningColor.withValues(
+                                        alpha: 0.5,
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(width: 4),
-                                  GestureDetector(
-                                    onTap: () => _showXPInfo(context),
-                                    child: const Icon(
-                                      Icons.help_outline,
-                                      size: 14,
-                                      color: Colors.white38,
-                                    ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.help_outline,
+                                        size: 14,
+                                        color: AppTheme.warningColor,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        "Comment gagner de l'XP ?",
+                                        style: TextStyle(
+                                          color: AppTheme.warningColor,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ],
                           ),
@@ -401,7 +430,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 30),
 
                   // Boutons en Row (côte à côte)
                   Row(
@@ -468,7 +497,8 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 8),
+
                             Text(
                               isRunning ? "ARRÊTER" : "DÉMARRER",
                               style: TextStyle(
@@ -549,7 +579,8 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 8),
+
                             Text(
                               "BROSSAGE",
                               style: TextStyle(
@@ -606,7 +637,8 @@ class HomeScreen extends ConsumerWidget {
               letterSpacing: 1.2,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: days.reversed.map((daysAgo) {
@@ -845,69 +877,114 @@ class HomeScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Système d'XP"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Gagne des points pour devenir une légende :",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              Icons.timer_outlined,
-              "Port de l'appareil",
-              "10 XP / heure",
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              Icons.brush_outlined,
-              "Brossage des dents",
-              "50 XP / session",
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              Icons.trending_up,
-              "Niveaux",
-              "1 montée tous les 1000 XP",
-            ),
-          ],
+        backgroundColor: const Color(0xFF1A1A2E).withValues(alpha: 0.95),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: AppTheme.primaryColor, width: 2),
+        ),
+        title: const Text(
+          "Système d'XP",
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Gagne des points pour devenir une légende :",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.white54),
+              ),
+              const SizedBox(height: 20),
+              _buildXPInfoCard(
+                Icons.timer_outlined,
+                "Port de l'appareil",
+                "10 XP / heure",
+                AppTheme.primaryColor,
+              ),
+              _buildXPInfoCard(
+                Icons.brush_outlined,
+                "Brossage des dents",
+                "50 XP / session",
+                AppTheme.successColor,
+              ),
+              _buildXPInfoCard(
+                Icons.trending_up,
+                "Niveaux",
+                "1 montée tous les 1000 XP",
+                AppTheme.secondaryColor,
+              ),
+            ],
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cool !"),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.black,
+              ),
+              child: const Text("Cool !"),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String title, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: AppTheme.primaryColor),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                value,
-                style: const TextStyle(fontSize: 12, color: Colors.white54),
-              ),
-            ],
+  Widget _buildXPInfoCard(
+    IconData icon,
+    String title,
+    String value,
+    Color color,
+  ) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6.0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 20, color: color),
           ),
-        ),
-      ],
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: color.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

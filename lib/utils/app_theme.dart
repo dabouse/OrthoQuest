@@ -4,7 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   // Neon Palette
   static const Color primaryColor = Color(0xFF00F0FF); // Neon Cyan
-  static const Color secondaryColor = Color(0xFF7000FF); // Neon Purple
+  static const Color secondaryColor = Color(
+    0xFFBC13FE,
+  ); // Neon Purple (Ajusté pour meilleur contraste)
   static const Color accentColor = Color(0xFFFF0099); // Neon Pink
   static const Color successColor = Color(0xFF39FF14); // Neon Green
   static const Color warningColor = Color(0xFFFFD300); // Neon Yellow
@@ -107,9 +109,11 @@ class AppBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
-      child: child,
+    return SizedBox.expand(
+      child: Container(
+        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
+        child: child,
+      ),
     );
   }
 }

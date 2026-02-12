@@ -265,15 +265,22 @@ class DatabaseService {
     await db.delete('sessions');
     await db.delete('user_badges');
 
+    // Récupérer l'objectif pour s'assurer de le dépasser
+    final goalStr = await getSetting('daily_goal');
+    final dailyGoal = int.tryParse(goalStr ?? '13') ?? 13;
+
     final now = DateTime.now();
     // Générer des données pour les 14 derniers jours
     for (int i = 0; i < 14; i++) {
       final dayDate = now.subtract(Duration(days: i));
 
-      // 80% de chance d'avoir une session de jour
-      if (random.nextDouble() > 0.2) {
-        final startHour = 7 + random.nextInt(4); // 7h à 10h
-        final durationHours = 4 + random.nextInt(4); // 4h à 7h
+      // On force la réussite pour les 10 derniers jours pour voir le badge rose
+      bool forceSuccess = i < 10;
+
+      // Session de jour
+      if (forceSuccess || random.nextDouble() > 0.2) {
+        final startHour = 7 + random.nextInt(2); // 7h-8h
+        final durationHours = forceSuccess ? 6 : (4 + random.nextInt(4));
         final startDay = DateTime(
           dayDate.year,
           dayDate.month,
@@ -287,15 +294,18 @@ class DatabaseService {
           Session(
             startTime: startDay,
             endTime: endDay,
-            stickerId: random.nextInt(5) + 1,
+            stickerId: random.nextInt(2), // Plutôt motivé (0 ou 1)
           ),
         );
       }
 
-      // 90% de chance d'avoir une session de nuit
-      if (random.nextDouble() > 0.1) {
-        final startHour = 20 + random.nextInt(3); // 20h à 22h
-        final durationHours = 7 + random.nextInt(4); // 7h à 10h
+      // Session de nuit
+      if (forceSuccess || random.nextDouble() > 0.1) {
+        final startHour = 20 + random.nextInt(2); // 20h-21h
+        // Si forceSuccess, on s'assure que jour + nuit > dailyGoal
+        final durationHours = forceSuccess
+            ? (dailyGoal - 5 + random.nextInt(3))
+            : (7 + random.nextInt(4));
         final startNight = DateTime(
           dayDate.year,
           dayDate.month,
@@ -309,7 +319,7 @@ class DatabaseService {
           Session(
             startTime: startNight,
             endTime: endNight,
-            stickerId: random.nextInt(5) + 1,
+            stickerId: random.nextInt(2),
           ),
         );
       }
@@ -323,12 +333,15 @@ class DatabaseService {
       await unlockBadge(badgeIds[i]);
     }
 
+    // Toujours débloquer Steel Teeth si on force le streak
+    await unlockBadge('steel_teeth');
+
     // Mettre à jour les stats de brossage
-    final totalBrushings = 5 + random.nextInt(20);
+    final totalBrushings = 15 + random.nextInt(10);
     await updateSetting('total_brushings', totalBrushings.toString());
 
     // Ajouter de l'XP et un niveau aléatoire
-    final randomXp = 1000 + random.nextInt(4000);
+    final randomXp = 3000 + random.nextInt(2000);
     final level = (randomXp / 1000).floor() + 1;
     await updateUserStats(randomXp, level);
   }
