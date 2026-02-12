@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
+
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/database_service.dart';
 import '../../providers/user_provider.dart';
+import '../../providers/brushing_provider.dart';
 import '../../utils/app_theme.dart';
 
 class BrushingScreen extends ConsumerStatefulWidget {
@@ -18,15 +19,9 @@ class BrushingScreen extends ConsumerStatefulWidget {
 
 class _BrushingScreenState extends ConsumerState<BrushingScreen>
     with TickerProviderStateMixin {
-  Timer? _timer;
-  int _secondsRemaining = 120; // 2 minutes
-  bool _isRunning = false;
   late ConfettiController _confettiController;
   late AnimationController _brushingController;
   final AudioPlayer _audioPlayer = AudioPlayer();
-
-  // Track initial total to calculate progress correctly
-  int _totalDuration = 120;
 
   @override
   void initState() {
@@ -43,114 +38,170 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
 
   Future<void> _loadSettings() async {
     final val = await DatabaseService().getSetting('brushing_duration');
-    final duration = int.tryParse(val ?? '120') ?? 120;
-    if (mounted) {
-      setState(() {
-        _secondsRemaining = duration;
-        _totalDuration = duration;
-      });
+    final durationSec = int.tryParse(val ?? '120') ?? 120;
+    // Only set duration if timer is not currently running to avoid resetting active session
+    final currentState = ref.read(brushingProvider);
+    if (!currentState.isRunning) {
+      ref
+          .read(brushingProvider.notifier)
+          .setDuration(Duration(seconds: durationSec));
     }
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
     _brushingController.dispose();
     _confettiController.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }
 
-  void _startTimer() {
-    if (_isRunning) return;
-
-    setState(() {
-      _isRunning = true;
-    });
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          if (_secondsRemaining > 0) {
-            _secondsRemaining--;
-          } else {
-            _completeSession();
-          }
-        });
-      }
-    });
-  }
-
   Future<void> _completeSession() async {
-    _timer?.cancel();
+    // Award XP & Check Badges
+    ref.read(userProvider.notifier).recordBrushing();
+
+    // Play Sound
+    try {
+      await _audioPlayer.setVolume(1.0);
+      await _audioPlayer.play(AssetSource('sounds/ding.mp3'));
+    } catch (e) {
+      debugPrint("Error playing sound: $e");
+    }
+
+    // Celebrate
+    _confettiController.play();
+
+    // Show Dialog
     if (mounted) {
-      setState(() {
-        _isRunning = false;
-        _secondsRemaining = _totalDuration;
-      });
+      final userState = ref.read(userProvider);
 
-      // Award XP & Check Badges
-      ref.read(userProvider.notifier).recordBrushing();
-
-      // Play Sound
-      try {
-        // Ensure asset is declared in pubspec.yaml
-        await _audioPlayer.play(AssetSource('sounds/ding.mp3'));
-      } catch (e) {
-        debugPrint("Error playing sound: $e");
-      }
-
-      // Celebrate
-      _confettiController.play();
-
-      // Show Dialog
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Brossage Terminé !"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("+50 XP"),
-              const SizedBox(height: 10),
-              Lottie.asset(
-                'assets/animations/star_success.json', // Star animation
-                height: 100,
-                repeat: false,
+        barrierDismissible: false,
+        builder: (context) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(20),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E2E), // Solid dark background
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: AppTheme.secondaryColor.withValues(alpha: 0.8),
+                width: 2,
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog
-                Navigator.pop(context); // Go back home
-              },
-              child: const Text("Super !"),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.secondaryColor.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
+              ],
             ),
-          ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Brossage Terminé !",
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10), // Reduced from 20
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: const Duration(milliseconds: 800),
+                  curve: Curves.elasticOut,
+                  builder: (context, value, child) {
+                    return Transform.scale(scale: value, child: child);
+                  },
+                  child: Icon(
+                    Icons.star_rounded,
+                    size: 100,
+                    color: AppTheme.warningColor,
+                    shadows: [
+                      Shadow(
+                        color: AppTheme.warningColor.withValues(alpha: 0.6),
+                        blurRadius: 20,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 5), // Reduced from 20
+                Text(
+                  "+50 XP",
+                  style: TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.accentColor,
+                    shadows: [
+                      Shadow(
+                        color: AppTheme.accentColor.withValues(alpha: 0.6),
+                        blurRadius: 15,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  "Série en cours : ${userState.streak} jours 🔥",
+                  style: const TextStyle(fontSize: 16, color: Colors.white70),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+                      Navigator.pop(context); // Go back home
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 8,
+                      shadowColor: AppTheme.primaryColor.withValues(alpha: 0.4),
+                    ),
+                    child: const Text(
+                      "Génial !",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
   }
 
-  void _stopTimer() {
-    _timer?.cancel();
-    setState(() {
-      _isRunning = false;
-    });
-  }
-
-  void _resetTimer() {
-    _timer?.cancel();
-    setState(() {
-      _isRunning = false;
-      _secondsRemaining = _totalDuration;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    final brushingState = ref.watch(brushingProvider);
+    final secondsRemaining = brushingState.remaining.inSeconds;
+    final totalDuration = brushingState.total.inSeconds;
+    final isRunning = brushingState.isRunning;
+
+    // Listen for completion
+    ref.listen(brushingProvider, (previous, next) {
+      if (previous != null &&
+          previous.isRunning &&
+          !next.isRunning &&
+          next.remaining == Duration.zero) {
+        _completeSession();
+      }
+    });
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(title: const Text("Brossage")),
@@ -180,8 +231,54 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
                     children: [
                       // Tooth Emoji
                       const Text('🦷', style: TextStyle(fontSize: 100)),
+                      // Foam / Bubbles Animation
+                      if (isRunning) ...[
+                        Positioned(
+                          top: -10,
+                          left: 20,
+                          child: ScaleTransition(
+                            scale: Tween(begin: 0.6, end: 1.2).animate(
+                              CurvedAnimation(
+                                parent: _brushingController,
+                                curve: Curves.easeInOut,
+                              ),
+                            ),
+                            child: const Text(
+                              '🫧',
+                              style: TextStyle(fontSize: 24),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 10,
+                          right: 15,
+                          child: FadeTransition(
+                            opacity: _brushingController,
+                            child: const Text(
+                              '🫧',
+                              style: TextStyle(fontSize: 20),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 15,
+                          left: 10,
+                          child: ScaleTransition(
+                            scale: Tween(begin: 0.8, end: 0.4).animate(
+                              CurvedAnimation(
+                                parent: _brushingController,
+                                curve: Curves.elasticIn,
+                              ),
+                            ),
+                            child: const Text(
+                              '🫧',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      ],
                       // Animated Toothbrush
-                      if (_isRunning)
+                      if (isRunning)
                         AnimatedBuilder(
                           animation: _brushingController,
                           builder: (context, child) {
@@ -224,12 +321,13 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
                   CircularPercentIndicator(
                     radius: 130.0, // Increased from 100.0
                     lineWidth: 20.0, // Increased from 15.0
-                    percent: (1.0 - (_secondsRemaining / _totalDuration)).clamp(
-                      0.0,
-                      1.0,
-                    ),
+                    percent:
+                        (1.0 -
+                                (secondsRemaining /
+                                    (totalDuration == 0 ? 1 : totalDuration)))
+                            .clamp(0.0, 1.0),
                     center: Text(
-                      "${(_secondsRemaining ~/ 60).toString().padLeft(2, '0')}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}",
+                      "${(secondsRemaining ~/ 60).toString().padLeft(2, '0')}:${(secondsRemaining % 60).toString().padLeft(2, '0')}",
                       style: const TextStyle(
                         fontSize: 50, // Increased from 40
                         fontWeight: FontWeight.bold,
@@ -248,7 +346,9 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
                       // Reset Button
                       FloatingActionButton(
                         heroTag: "reset_btn",
-                        onPressed: _resetTimer,
+                        onPressed: () {
+                          ref.read(brushingProvider.notifier).resetTimer();
+                        },
                         backgroundColor: Colors.white24,
                         child: const Icon(
                           Icons.refresh,
@@ -260,12 +360,18 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
                       // Play/Pause Button
                       FloatingActionButton.large(
                         heroTag: "play_btn",
-                        onPressed: _isRunning ? _stopTimer : _startTimer,
-                        backgroundColor: _isRunning
+                        onPressed: () {
+                          if (isRunning) {
+                            ref.read(brushingProvider.notifier).stopTimer();
+                          } else {
+                            ref.read(brushingProvider.notifier).startTimer();
+                          }
+                        },
+                        backgroundColor: isRunning
                             ? AppTheme.warningColor
                             : AppTheme.successColor,
                         child: Icon(
-                          _isRunning ? Icons.pause : Icons.play_arrow,
+                          isRunning ? Icons.pause : Icons.play_arrow,
                           color: Colors.white,
                           size: 60,
                         ),
@@ -275,7 +381,7 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
                   ),
                   const SizedBox(height: 30),
                   Text(
-                    _isRunning
+                    isRunning
                         ? "Brosse bien partout !"
                         : "Prêt pour un sourire éclatant ?",
                     style: const TextStyle(fontSize: 18, color: Colors.white70),

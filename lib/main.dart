@@ -80,10 +80,37 @@ class _OrthoQuestAppState extends ConsumerState<OrthoQuestApp>
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Container(
-              decoration: const BoxDecoration(
-                gradient: AppTheme.backgroundGradient,
+              decoration: const BoxDecoration(color: Colors.black),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.secondaryColor.withValues(
+                              alpha: 0.5,
+                            ),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 300,
+                        height: 300,
+                      ),
+                    ),
+                    const SizedBox(height: 50),
+                    const CircularProgressIndicator(
+                      color: AppTheme.secondaryColor,
+                    ),
+                  ],
+                ),
               ),
-              child: const Center(child: CircularProgressIndicator()),
             );
           }
 

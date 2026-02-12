@@ -26,74 +26,68 @@ class HomeScreen extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        leading: userState.streak > 0
-            ? Center(
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const BadgesScreen(),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(left: 10),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(
-                        color: _getStreakColor(
-                          userState.streak,
-                        ).withValues(alpha: 0.8),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
+        leading: Center(
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const BadgesScreen()),
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.only(left: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: _getStreakColor(
+                    userState.streak,
+                  ).withValues(alpha: 0.8),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: _getStreakColor(
+                      userState.streak,
+                    ).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    userState.streak >= 3
+                        ? Icons.local_fire_department
+                        : Icons
+                              .calendar_today, // Changed from ac_unit to calendar for 0
+                    color: _getStreakColor(userState.streak),
+                    size: 16,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    "${userState.streak}",
+                    style: TextStyle(
+                      color: _getStreakColor(userState.streak),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      shadows: [
+                        Shadow(
                           color: _getStreakColor(
                             userState.streak,
-                          ).withValues(alpha: 0.3),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          userState.streak >= 3
-                              ? Icons.local_fire_department
-                              : Icons.ac_unit,
-                          color: _getStreakColor(userState.streak),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          "${userState.streak}",
-                          style: TextStyle(
-                            color: _getStreakColor(userState.streak),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            shadows: [
-                              Shadow(
-                                color: _getStreakColor(
-                                  userState.streak,
-                                ).withValues(alpha: 0.5),
-                                blurRadius: 10,
-                              ),
-                            ],
-                          ),
+                          ).withValues(alpha: 0.5),
+                          blurRadius: 10,
                         ),
                       ],
                     ),
                   ),
-                ),
-              )
-            : null,
+                ],
+              ),
+            ),
+          ),
+        ),
         leadingWidth: 85,
         actions: [
           IconButton(
