@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/database_service.dart';
 import '../utils/date_utils.dart';
+import '../models/session.dart';
 
 class UserState {
   final int xp;
@@ -127,6 +128,22 @@ class UserNotifier extends Notifier<UserState> {
     if (newValue >= 10) {
       unlockBadge('hygiene_pro');
     }
+  }
+
+  /// Traite la fin d'une session : calcule l'XP et vérifie les badges.
+  Future<void> processSessionCompletion(Session session) async {
+    // 1. Calcul de l'XP
+    // 10 XP par heure -> ~1 XP toutes les 6 minutes
+    final duration = session.duration;
+    if (duration.inMinutes > 0) {
+      final xpEarned = (duration.inMinutes / 6).floor();
+      if (xpEarned > 0) {
+        await addXp(xpEarned);
+      }
+    }
+
+    // 2. Vérification des badges
+    await checkSessionBadges();
   }
 
   Future<void> checkSessionBadges() async {

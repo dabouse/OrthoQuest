@@ -16,12 +16,17 @@ class BrushingScreen extends ConsumerStatefulWidget {
   ConsumerState<BrushingScreen> createState() => _BrushingScreenState();
 }
 
-class _BrushingScreenState extends ConsumerState<BrushingScreen> {
-  late Timer _timer;
+class _BrushingScreenState extends ConsumerState<BrushingScreen>
+    with TickerProviderStateMixin {
+  Timer? _timer;
   int _secondsRemaining = 120; // 2 minutes
   bool _isRunning = false;
   late ConfettiController _confettiController;
+  late AnimationController _brushingController;
   final AudioPlayer _audioPlayer = AudioPlayer();
+
+  // Track initial total to calculate progress correctly
+  int _totalDuration = 120;
 
   @override
   void initState() {
@@ -30,23 +35,27 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen> {
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 3),
     );
+    _brushingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..repeat(reverse: true);
   }
 
   Future<void> _loadSettings() async {
     final val = await DatabaseService().getSetting('brushing_duration');
     final duration = int.tryParse(val ?? '120') ?? 120;
-    setState(() {
-      _secondsRemaining = duration;
-      _totalDuration = duration;
-    });
+    if (mounted) {
+      setState(() {
+        _secondsRemaining = duration;
+        _totalDuration = duration;
+      });
+    }
   }
-
-  // Track initial total to calculate progress correctly
-  int _totalDuration = 120;
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
+    _brushingController.dispose();
     _confettiController.dispose();
     _audioPlayer.dispose();
     super.dispose();
@@ -60,39 +69,41 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen> {
     });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_secondsRemaining > 0) {
-          _secondsRemaining--;
-        } else {
-          _completeSession();
-        }
-      });
+      if (mounted) {
+        setState(() {
+          if (_secondsRemaining > 0) {
+            _secondsRemaining--;
+          } else {
+            _completeSession();
+          }
+        });
+      }
     });
   }
 
   Future<void> _completeSession() async {
-    _timer.cancel();
-    setState(() {
-      _isRunning = false;
-      _secondsRemaining = _totalDuration;
-    });
-
-    // Award XP & Check Badges
-    ref.read(userProvider.notifier).recordBrushing();
-
-    // Play Sound
-    try {
-      // Ensure asset is declared in pubspec.yaml
-      await _audioPlayer.play(AssetSource('sounds/ding.mp3'));
-    } catch (e) {
-      debugPrint("Error playing sound: $e");
-    }
-
-    // Celebrate
-    _confettiController.play();
-
-    // Show Dialog
+    _timer?.cancel();
     if (mounted) {
+      setState(() {
+        _isRunning = false;
+        _secondsRemaining = _totalDuration;
+      });
+
+      // Award XP & Check Badges
+      ref.read(userProvider.notifier).recordBrushing();
+
+      // Play Sound
+      try {
+        // Ensure asset is declared in pubspec.yaml
+        await _audioPlayer.play(AssetSource('sounds/ding.mp3'));
+      } catch (e) {
+        debugPrint("Error playing sound: $e");
+      }
+
+      // Celebrate
+      _confettiController.play();
+
+      // Show Dialog
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -102,8 +113,8 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen> {
             children: [
               const Text("+50 XP"),
               const SizedBox(height: 10),
-              Lottie.network(
-                'https://assets10.lottiefiles.com/packages/lf20_touohxv0.json', // Star animation
+              Lottie.asset(
+                'assets/animations/star_success.json', // Star animation
                 height: 100,
                 repeat: false,
               ),
@@ -124,9 +135,17 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen> {
   }
 
   void _stopTimer() {
-    _timer.cancel();
+    _timer?.cancel();
     setState(() {
       _isRunning = false;
+    });
+  }
+
+  void _resetTimer() {
+    _timer?.cancel();
+    setState(() {
+      _isRunning = false;
+      _secondsRemaining = _totalDuration;
     });
   }
 
@@ -155,15 +174,56 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen> {
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Lottie.network(
-                    'https://assets10.lottiefiles.com/packages/lf20_metk4x85.json',
-                    height: 200,
-                    animate: _isRunning,
+                  Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Tooth Emoji
+                      const Text('🦷', style: TextStyle(fontSize: 100)),
+                      // Animated Toothbrush
+                      if (_isRunning)
+                        AnimatedBuilder(
+                          animation: _brushingController,
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(
+                                20.0 *
+                                    (0.5 -
+                                        _brushingController
+                                            .value), // Move left-right
+                                0,
+                              ),
+                              child: Transform.rotate(
+                                angle:
+                                    -0.2 +
+                                    (0.4 *
+                                        _brushingController
+                                            .value), // Rotate slightly
+                                child: const Text(
+                                  '🪥',
+                                  style: TextStyle(fontSize: 80),
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      else
+                        Transform.translate(
+                          offset: const Offset(20, 10),
+                          child: Transform.rotate(
+                            angle: -0.5,
+                            child: const Text(
+                              '🪥',
+                              style: TextStyle(fontSize: 80),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 40),
                   CircularPercentIndicator(
-                    radius: 100.0,
-                    lineWidth: 15.0,
+                    radius: 130.0, // Increased from 100.0
+                    lineWidth: 20.0, // Increased from 15.0
                     percent: (1.0 - (_secondsRemaining / _totalDuration)).clamp(
                       0.0,
                       1.0,
@@ -171,7 +231,7 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen> {
                     center: Text(
                       "${(_secondsRemaining ~/ 60).toString().padLeft(2, '0')}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}",
                       style: const TextStyle(
-                        fontSize: 40,
+                        fontSize: 50, // Increased from 40
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -181,11 +241,25 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen> {
                     ),
                     circularStrokeCap: CircularStrokeCap.round,
                   ),
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 40),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Reset Button
+                      FloatingActionButton(
+                        heroTag: "reset_btn",
+                        onPressed: _resetTimer,
+                        backgroundColor: Colors.white24,
+                        child: const Icon(
+                          Icons.refresh,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 40),
+                      // Play/Pause Button
                       FloatingActionButton.large(
+                        heroTag: "play_btn",
                         onPressed: _isRunning ? _stopTimer : _startTimer,
                         backgroundColor: _isRunning
                             ? AppTheme.warningColor
@@ -193,16 +267,21 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen> {
                         child: Icon(
                           _isRunning ? Icons.pause : Icons.play_arrow,
                           color: Colors.white,
+                          size: 60,
                         ),
                       ),
+                      const SizedBox(width: 96), // Balance the row visually
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  if (_isRunning)
-                    const Text(
-                      "Brosse bien partout !",
-                      style: TextStyle(fontSize: 18, color: Colors.white70),
-                    ),
+                  const SizedBox(height: 30),
+                  Text(
+                    _isRunning
+                        ? "Brosse bien partout !"
+                        : "Prêt pour un sourire éclatant ?",
+                    style: const TextStyle(fontSize: 18, color: Colors.white70),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 50), // Push content up slightly
                 ],
               ),
             ],

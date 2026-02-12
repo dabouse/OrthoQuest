@@ -15,6 +15,26 @@ class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
   static Database? _database;
 
+  // Table & Column Constants
+  static const String tableSessions = 'sessions';
+  static const String colId = 'id';
+  static const String colStartTime = 'start_time';
+  static const String colEndTime = 'end_time';
+  static const String colStickerId = 'sticker_id';
+
+  static const String tableSettings = 'settings';
+  static const String colKey = 'key';
+  static const String colValue = 'value';
+
+  static const String tableUserStats = 'user_stats';
+  static const String colXp = 'xp';
+  // Note: colLevel matches the database column name 'level'
+  static const String colLevel = 'level';
+
+  static const String tableUserBadges = 'user_badges';
+  static const String colBadgeId = 'badge_id';
+  static const String colUnlockedAt = 'unlocked_at';
+
   factory DatabaseService() {
     return _instance;
   }
@@ -41,44 +61,47 @@ class DatabaseService {
 
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE sessions(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        start_time TEXT NOT NULL,
-        end_time TEXT,
-        sticker_id INTEGER
+      CREATE TABLE $tableSessions(
+        $colId INTEGER PRIMARY KEY AUTOINCREMENT,
+        $colStartTime TEXT NOT NULL,
+        $colEndTime TEXT,
+        $colStickerId INTEGER
       )
     ''');
 
     await db.execute('''
-      CREATE TABLE settings(
-        key TEXT PRIMARY KEY,
-        value TEXT
+      CREATE TABLE $tableSettings(
+        $colKey TEXT PRIMARY KEY,
+        $colValue TEXT
       )
     ''');
 
     // Insert default settings
-    await db.insert('settings', {
-      'key': 'brushing_duration',
-      'value': '120',
+    await db.insert(tableSettings, {
+      colKey: 'brushing_duration',
+      colValue: '120',
     }); // 2 minutes in seconds
-    await db.insert('settings', {'key': 'day_end_hour', 'value': '5'}); // 5 AM
+    await db.insert(tableSettings, {
+      colKey: 'day_end_hour',
+      colValue: '5',
+    }); // 5 AM
 
     // Create user_stats table
     await db.execute('''
-      CREATE TABLE user_stats(
-        id INTEGER PRIMARY KEY,
-        xp INTEGER,
-        level INTEGER
+      CREATE TABLE $tableUserStats(
+        $colId INTEGER PRIMARY KEY,
+        $colXp INTEGER,
+        $colLevel INTEGER
       )
     ''');
     // Insert initial user stats
-    await db.insert('user_stats', {'id': 1, 'xp': 0, 'level': 1});
+    await db.insert(tableUserStats, {colId: 1, colXp: 0, colLevel: 1});
 
     // Create user_badges table
     await db.execute('''
-      CREATE TABLE user_badges(
-        badge_id TEXT PRIMARY KEY,
-        unlocked_at TEXT
+      CREATE TABLE $tableUserBadges(
+        $colBadgeId TEXT PRIMARY KEY,
+        $colUnlockedAt TEXT
       )
     ''');
   }
@@ -88,20 +111,20 @@ class DatabaseService {
     if (oldVersion < 2) {
       // Add user_stats table if upgrading from version 1
       await db.execute('''
-        CREATE TABLE user_stats(
-          id INTEGER PRIMARY KEY,
-          xp INTEGER,
-          level INTEGER
+        CREATE TABLE $tableUserStats(
+          $colId INTEGER PRIMARY KEY,
+          $colXp INTEGER,
+          $colLevel INTEGER
         )
       ''');
-      await db.insert('user_stats', {'id': 1, 'xp': 0, 'level': 1});
+      await db.insert(tableUserStats, {colId: 1, colXp: 0, colLevel: 1});
     }
 
     if (oldVersion < 3) {
       await db.execute('''
-        CREATE TABLE user_badges(
-          badge_id TEXT PRIMARY KEY,
-          unlocked_at TEXT
+        CREATE TABLE $tableUserBadges(
+          $colBadgeId TEXT PRIMARY KEY,
+          $colUnlockedAt TEXT
         )
       ''');
     }
@@ -109,19 +132,19 @@ class DatabaseService {
     if (oldVersion < 4) {
       // Fix for "no such column: id" in user_stats if schema was malformed
       // We drop and recreate to be safe
-      await db.execute('DROP TABLE IF EXISTS user_stats');
+      await db.execute('DROP TABLE IF EXISTS $tableUserStats');
       await db.execute('''
-        CREATE TABLE user_stats(
-          id INTEGER PRIMARY KEY,
-          xp INTEGER,
-          level INTEGER
+        CREATE TABLE $tableUserStats(
+          $colId INTEGER PRIMARY KEY,
+          $colXp INTEGER,
+          $colLevel INTEGER
         )
       ''');
-      await db.insert('user_stats', {'id': 1, 'xp': 0, 'level': 1});
+      await db.insert(tableUserStats, {colId: 1, colXp: 0, colLevel: 1});
 
       // Also ensure user_badges exists if skipped
       await db.execute(
-        'CREATE TABLE IF NOT EXISTS user_badges(badge_id TEXT PRIMARY KEY, unlocked_at TEXT)',
+        'CREATE TABLE IF NOT EXISTS $tableUserBadges($colBadgeId TEXT PRIMARY KEY, $colUnlockedAt TEXT)',
       );
     }
   }
@@ -129,15 +152,15 @@ class DatabaseService {
   // Session Methods
   Future<int> insertSession(Session session) async {
     final db = await database;
-    return await db.insert('sessions', session.toMap());
+    return await db.insert(tableSessions, session.toMap());
   }
 
   Future<int> updateSession(Session session) async {
     final db = await database;
     return await db.update(
-      'sessions',
+      tableSessions,
       session.toMap(),
-      where: 'id = ?',
+      where: '$colId = ?',
       whereArgs: [session.id],
     );
   }
@@ -145,8 +168,8 @@ class DatabaseService {
   Future<List<Session>> getSessions() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
-      'sessions',
-      orderBy: 'start_time DESC',
+      tableSessions,
+      orderBy: '$colStartTime DESC',
     );
     return List.generate(maps.length, (i) {
       return Session.fromMap(maps[i]);
@@ -179,9 +202,9 @@ class DatabaseService {
   Future<Session?> getLastOpenSession() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
-      'sessions',
-      where: 'end_time IS NULL',
-      orderBy: 'start_time DESC',
+      tableSessions,
+      where: '$colEndTime IS NULL',
+      orderBy: '$colStartTime DESC',
       limit: 1,
     );
     if (maps.isNotEmpty) {
@@ -193,21 +216,21 @@ class DatabaseService {
   // Settings Methods
   Future<void> updateSetting(String key, String value) async {
     final db = await database;
-    await db.insert('settings', {
-      'key': key,
-      'value': value,
+    await db.insert(tableSettings, {
+      colKey: key,
+      colValue: value,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<String?> getSetting(String key) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
-      'settings',
-      where: 'key = ?',
+      tableSettings,
+      where: '$colKey = ?',
       whereArgs: [key],
     );
     if (maps.isNotEmpty) {
-      return maps.first['value'];
+      return maps.first[colValue];
     }
     return null;
   }
@@ -216,23 +239,23 @@ class DatabaseService {
   Future<Map<String, dynamic>> getUserStats() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
-      'user_stats',
-      where: 'id = ?',
+      tableUserStats,
+      where: '$colId = ?',
       whereArgs: [1],
     );
     if (maps.isNotEmpty) {
       return maps.first;
     }
     // Default if not found (unexpected as we create it)
-    return {'xp': 0, 'level': 1};
+    return {colXp: 0, colLevel: 1};
   }
 
   Future<void> updateUserStats(int xp, int level) async {
     final db = await database;
     await db.update(
-      'user_stats',
-      {'xp': xp, 'level': level},
-      where: 'id = ?',
+      tableUserStats,
+      {colXp: xp, colLevel: level},
+      where: '$colId = ?',
       whereArgs: [1],
     );
   }
@@ -244,15 +267,15 @@ class DatabaseService {
     // actually we handled it in onCreate/onUpgrade.
     // If table doesn't exist, query throws.
 
-    final maps = await db.query('user_badges');
-    return maps.map((e) => e['badge_id'] as String).toList();
+    final maps = await db.query(tableUserBadges);
+    return maps.map((e) => e[colBadgeId] as String).toList();
   }
 
   Future<void> unlockBadge(String badgeId) async {
     final db = await database;
-    await db.insert('user_badges', {
-      'badge_id': badgeId,
-      'unlocked_at': DateTime.now().toIso8601String(),
+    await db.insert(tableUserBadges, {
+      colBadgeId: badgeId,
+      colUnlockedAt: DateTime.now().toIso8601String(),
     }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
@@ -262,8 +285,8 @@ class DatabaseService {
     final db = await database;
 
     // Clear existing
-    await db.delete('sessions');
-    await db.delete('user_badges');
+    await db.delete(tableSessions);
+    await db.delete(tableUserBadges);
 
     // Récupérer l'objectif pour s'assurer de le dépasser
     final goalStr = await getSetting('daily_goal');
@@ -352,9 +375,12 @@ class DatabaseService {
   /// Efface toutes les sessions et badges, et réinitialise les stats utilisateur.
   Future<void> clearAllData() async {
     final db = await database;
-    await db.delete('sessions');
-    await db.delete('user_badges');
-    await db.update('user_stats', {'xp': 0, 'level': 1}, where: 'id = 1');
+    await db.delete(tableSessions);
+    await db.delete(tableUserBadges);
+    await db.update(tableUserStats, {
+      colXp: 0,
+      colLevel: 1,
+    }, where: '$colId = 1');
     await updateSetting('total_brushings', '0');
   }
 }

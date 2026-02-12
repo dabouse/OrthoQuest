@@ -1,0 +1,282 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:percent_indicator/percent_indicator.dart';
+import '../../../providers/timer_provider.dart';
+import '../../../utils/app_theme.dart';
+import '../../../utils/session_utils.dart';
+
+class DailyProgressCard extends ConsumerWidget {
+  const DailyProgressCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final timerState = ref.watch(timerProvider);
+
+    // Total duration: stored daily total + current session
+    final totalDuration =
+        timerState.dailyTotalDuration + timerState.currentSessionDuration;
+
+    // Target: Dynamic based on settings
+    final targetMinutes = timerState.dailyGoal * 60;
+    final progress = (totalDuration.inMinutes / targetMinutes).clamp(0.0, 1.0);
+
+    return Column(
+      children: [
+        // Sessions du jour en haut (icônes)
+        if (timerState.dailySessions.isNotEmpty)
+          _buildSessionList(context, ref, timerState),
+
+        // Jauge circulaire principale
+        CircularPercentIndicator(
+          radius: 115.0,
+          lineWidth: 20.0,
+          percent: progress,
+          center: Padding(
+            padding: const EdgeInsets.all(15.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    SessionUtils.formatDuration(totalDuration),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 32.0,
+                      color: Colors.white,
+                      shadows: [
+                        BoxShadow(color: AppTheme.primaryColor, blurRadius: 10),
+                      ],
+                    ),
+                  ),
+                ),
+                const Text(
+                  "Aujourd'hui",
+                  style: TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 5),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: (totalDuration.inHours >= timerState.dailyGoal)
+                          ? AppTheme.successColor
+                          : AppTheme.primaryColor,
+                    ),
+                  ),
+                  child: Text(
+                    "Objectif: ${timerState.dailyGoal}h",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: (totalDuration.inHours >= timerState.dailyGoal)
+                          ? AppTheme.successColor
+                          : AppTheme.primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          progressColor: (totalDuration.inHours >= timerState.dailyGoal)
+              ? AppTheme.successColor
+              : (progress >= 0.5
+                    ? AppTheme.primaryColor
+                    : AppTheme.accentColor),
+          backgroundColor: Colors.white.withValues(alpha: 0.1),
+          circularStrokeCap: CircularStrokeCap.round,
+          animation: true,
+          animateFromLastPercent: true,
+          footer: Padding(
+            padding: const EdgeInsets.only(top: 6.0),
+            child: Text(
+              (totalDuration.inHours >= timerState.dailyGoal)
+                  ? "OBJECTIF ATTEINT"
+                  : "EN COURS...",
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2.0,
+                color: Colors.white54,
+                fontSize: 10,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSessionList(
+    BuildContext context,
+    WidgetRef ref,
+    TimerState timerState,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: SizedBox(
+        height: 40,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: timerState.dailySessions.length,
+          itemBuilder: (context, index) {
+            final session = timerState.dailySessions[index];
+            final stickerId = session.stickerId;
+
+            if (stickerId == null ||
+                !SessionUtils.stickers.containsKey(stickerId)) {
+              return const SizedBox.shrink();
+            }
+
+            final data = SessionUtils.stickers[stickerId]!;
+
+            return GestureDetector(
+              onLongPress: () {
+                if (session.id != null) {
+                  _showEditStickerDialog(context, ref, session.id!);
+                }
+              },
+              onTap: () {}, // Triggered by Tooltip triggerMode
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: Duration(milliseconds: 400 + (index * 100)),
+                curve: Curves.elasticOut,
+                builder: (context, value, child) {
+                  return Transform.scale(scale: value, child: child);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: Tooltip(
+                    triggerMode: TooltipTriggerMode.tap,
+                    preferBelow: true,
+                    verticalOffset: 20,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEEEEE).withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    textStyle: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    message:
+                        "${SessionUtils.formatDuration(session.duration)} - ${data['label']}",
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: (data['color'] as Color).withValues(
+                              alpha: 0.3,
+                            ),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                        border: Border.all(
+                          color: data['color'] as Color,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        data['icon'] as IconData,
+                        color: data['color'] as Color,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showEditStickerDialog(
+    BuildContext context,
+    WidgetRef ref,
+    int sessionId,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Modifier la session"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Choisis une nouvelle icône :"),
+            const SizedBox(height: 20),
+            SingleChildScrollView(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: SessionUtils.stickers.entries.map((entry) {
+                  final id = entry.key;
+                  final data = entry.value;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          ref
+                              .read(timerProvider.notifier)
+                              .updateSessionSticker(sessionId, id);
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: (data['color'] as Color).withValues(
+                                  alpha: 0.3,
+                                ),
+                                blurRadius: 10,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                            border: Border.all(
+                              color: data['color'] as Color,
+                              width: 2,
+                            ),
+                          ),
+                          child: Icon(
+                            data['icon'] as IconData,
+                            color: data['color'] as Color,
+                            size: 32,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        data['label'] as String,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Annuler"),
+          ),
+        ],
+      ),
+    );
+  }
+}

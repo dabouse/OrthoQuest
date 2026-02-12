@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/session.dart';
 import '../services/database_service.dart';
@@ -130,8 +131,14 @@ class TimerNotifier extends Notifier<TimerState> {
     if (state.isRunning) return;
 
     final now = DateTime.now();
+    debugPrint('Starting session at $now'); // DEBUG for 500 error
     final newSession = Session(startTime: now);
-    await DatabaseService().insertSession(newSession);
+    try {
+      await DatabaseService().insertSession(newSession);
+    } catch (e) {
+      debugPrint('Error inserting session: $e');
+      return;
+    }
 
     state = state.copyWith(
       isRunning: true,
@@ -170,16 +177,10 @@ class TimerNotifier extends Notifier<TimerState> {
       );
       await DatabaseService().updateSession(updatedSession);
 
-      // Award XP: 10 XP per hour (approx 1 XP per 6 minutes)
-      // Minimum duration to award XP? maybe 1 minute?
-      final duration = updatedSession.duration;
-      if (duration.inMinutes > 0) {
-        final xpEarned = (duration.inMinutes / 6)
-            .floor(); // 10 XP / 60 min = 1/6
-        if (xpEarned > 0) {
-          ref.read(userProvider.notifier).addXp(xpEarned);
-        }
-      }
+      // Delegate XP calculation and badge checking to UserProvider
+      await ref
+          .read(userProvider.notifier)
+          .processSessionCompletion(updatedSession);
     }
 
     _ticker?.cancel();
@@ -194,9 +195,6 @@ class TimerNotifier extends Notifier<TimerState> {
     );
     await _loadDailyStats();
     await _loadHistory(); // Refresh history
-
-    // Check for badges
-    ref.read(userProvider.notifier).checkSessionBadges();
   }
 
   void _startTicker() {
