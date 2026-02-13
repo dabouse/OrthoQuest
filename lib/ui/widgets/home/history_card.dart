@@ -23,7 +23,8 @@ class HistoryCard extends ConsumerWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Colors.white70,
+              color: Colors.white,
+              shadows: AppTheme.textShadows,
               letterSpacing: 1.2,
             ),
           ),
@@ -80,13 +81,19 @@ class HistoryCard extends ConsumerWidget {
                         "J-$daysAgo",
                         style: TextStyle(
                           fontSize: 10,
-                          color: Colors.white60,
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
+                          shadows: AppTheme.textShadows,
                         ),
                       ),
                       Text(
                         "${(minutes / 60).toStringAsFixed(1)}h",
-                        style: TextStyle(fontSize: 10, color: Colors.white38),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          shadows: AppTheme.textShadows,
+                        ),
                       ),
                     ],
                   ),

@@ -75,10 +75,15 @@ class ActionButtons extends ConsumerWidget {
                   fontWeight: FontWeight.bold,
                   fontSize: 11,
                   letterSpacing: 1.0,
-                  color: isRunning ? Colors.white24 : Colors.white70,
+                  color: isRunning ? Colors.white24 : Colors.white,
                   shadows: [
+                    const Shadow(
+                      color: Colors.black,
+                      offset: Offset(0, 1),
+                      blurRadius: 3,
+                    ),
                     if (!isRunning)
-                      const BoxShadow(
+                      const Shadow(
                         color: AppTheme.primaryColor,
                         blurRadius: 10,
                       ),
@@ -153,7 +158,12 @@ class ActionButtons extends ConsumerWidget {
                       ? AppTheme.errorColor
                       : AppTheme.successColor,
                   shadows: [
-                    BoxShadow(
+                    const Shadow(
+                      color: Colors.black,
+                      offset: Offset(0, 1),
+                      blurRadius: 4,
+                    ),
+                    Shadow(
                       color: (isRunning
                           ? AppTheme.errorColor
                           : AppTheme.successColor),
@@ -221,8 +231,13 @@ class ActionButtons extends ConsumerWidget {
                   fontWeight: FontWeight.bold,
                   fontSize: 11,
                   letterSpacing: 1.0,
-                  color: Colors.white70,
+                  color: Colors.white,
                   shadows: [
+                    Shadow(
+                      color: Colors.black,
+                      offset: Offset(0, 1),
+                      blurRadius: 3,
+                    ),
                     BoxShadow(color: AppTheme.secondaryColor, blurRadius: 10),
                   ],
                 ),

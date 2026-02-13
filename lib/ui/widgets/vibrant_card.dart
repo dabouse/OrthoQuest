@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/user_provider.dart';
 
-class VibrantCard extends StatelessWidget {
+class VibrantCard extends ConsumerWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final double? width;
@@ -18,17 +20,21 @@ class VibrantCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userState = ref.watch(userProvider);
+    final sectionOpacity = userState.sectionOpacity;
+    final sectionBlur = userState.sectionBlur;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        filter: ImageFilter.blur(sigmaX: sectionBlur, sigmaY: sectionBlur),
         child: Container(
           width: width,
           height: height,
           padding: padding ?? const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: color ?? Colors.white.withValues(alpha: 0.1),
+            color: color ?? Colors.white.withValues(alpha: sectionOpacity),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: Colors.white.withValues(alpha: 0.2),

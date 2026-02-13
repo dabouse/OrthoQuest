@@ -49,12 +49,17 @@ class DailyProgressCard extends ConsumerWidget {
                           SessionUtils.formatDuration(totalDuration),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 32.0,
+                            fontSize: 28.0,
                             color: Colors.white,
                             shadows: [
-                              BoxShadow(
+                              Shadow(
+                                color: Colors.black,
+                                offset: Offset(0, 2),
+                                blurRadius: 4,
+                              ),
+                              Shadow(
                                 color: AppTheme.primaryColor,
-                                blurRadius: 10,
+                                blurRadius: 8,
                               ),
                             ],
                           ),
@@ -62,7 +67,11 @@ class DailyProgressCard extends ConsumerWidget {
                       ),
                       const Text(
                         "Aujourd'hui",
-                        style: TextStyle(color: Colors.white70),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          shadows: AppTheme.textShadows,
+                        ),
                       ),
                       const SizedBox(height: 5),
                       Container(
@@ -89,6 +98,7 @@ class DailyProgressCard extends ConsumerWidget {
                                 (totalDuration.inHours >= timerState.dailyGoal)
                                 ? AppTheme.successColor
                                 : AppTheme.primaryColor,
+                            shadows: AppTheme.textShadows,
                           ),
                         ),
                       ),
@@ -113,8 +123,9 @@ class DailyProgressCard extends ConsumerWidget {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       letterSpacing: 2.0,
-                      color: Colors.white54,
+                      color: Colors.white,
                       fontSize: 10,
+                      shadows: AppTheme.textShadows,
                     ),
                   ),
                 ),

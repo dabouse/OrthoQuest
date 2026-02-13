@@ -39,7 +39,10 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(
           'OrthoQuest',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            shadows: AppTheme.textShadows,
+          ),
         ),
         centerTitle: true,
         leading: Center(

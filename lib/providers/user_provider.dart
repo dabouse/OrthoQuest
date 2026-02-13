@@ -14,6 +14,8 @@ class UserState {
   final int lastSeenLevel;
   final bool hasUnseenReward;
   final String? lastUnlockedReward;
+  final double sectionOpacity;
+  final double sectionBlur;
 
   UserState({
     this.xp = 0,
@@ -25,6 +27,8 @@ class UserState {
     this.lastSeenLevel = 0,
     this.hasUnseenReward = false,
     this.lastUnlockedReward,
+    this.sectionOpacity = 0.1,
+    this.sectionBlur = 10.0,
   });
 
   UserState copyWith({
@@ -37,6 +41,8 @@ class UserState {
     int? lastSeenLevel,
     bool? hasUnseenReward,
     String? lastUnlockedReward,
+    double? sectionOpacity,
+    double? sectionBlur,
   }) {
     return UserState(
       xp: xp ?? this.xp,
@@ -48,6 +54,8 @@ class UserState {
       lastSeenLevel: lastSeenLevel ?? this.lastSeenLevel,
       hasUnseenReward: hasUnseenReward ?? this.hasUnseenReward,
       lastUnlockedReward: lastUnlockedReward ?? this.lastUnlockedReward,
+      sectionOpacity: sectionOpacity ?? this.sectionOpacity,
+      sectionBlur: sectionBlur ?? this.sectionBlur,
     );
   }
 }
@@ -83,6 +91,12 @@ class UserNotifier extends Notifier<UserState> {
     final hasUnseen = hasUnseenStr == 'true';
     final lastSeen = int.tryParse(lastSeenStr ?? '0') ?? 0;
 
+    final opacityStr = await DatabaseService().getSetting('section_opacity');
+    final sectionOpacity = double.tryParse(opacityStr ?? '0.1') ?? 0.1;
+
+    final blurStr = await DatabaseService().getSetting('section_blur');
+    final sectionBlur = double.tryParse(blurStr ?? '10.0') ?? 10.0;
+
     final currentLevel = stats['level'] as int;
     final filteredThemes = unlockedThemes.where((themeId) {
       final requiredLevel = AppTheme.themeUnlockLevels[themeId] ?? 1;
@@ -102,6 +116,8 @@ class UserNotifier extends Notifier<UserState> {
       unlockedThemes: filteredThemes,
       lastSeenLevel: lastSeen == 0 ? currentLevel : lastSeen,
       hasUnseenReward: hasUnseen,
+      sectionOpacity: sectionOpacity,
+      sectionBlur: sectionBlur,
     );
 
     // Ensure all rewards for current level are unlocked (useful for updates)
@@ -285,6 +301,16 @@ class UserNotifier extends Notifier<UserState> {
       'has_unseen_reward',
       value.toString(),
     );
+  }
+
+  Future<void> setSectionOpacity(double value) async {
+    state = state.copyWith(sectionOpacity: value);
+    await DatabaseService().updateSetting('section_opacity', value.toString());
+  }
+
+  Future<void> setSectionBlur(double value) async {
+    state = state.copyWith(sectionBlur: value);
+    await DatabaseService().updateSetting('section_blur', value.toString());
   }
 }
 

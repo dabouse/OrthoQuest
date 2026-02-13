@@ -14,6 +14,10 @@ class AppTheme {
   static const Color warningColor = Color(0xFFFFD300); // Neon Yellow
   static const Color errorColor = Color(0xFFFF3131); // Neon Red
 
+  static const List<Shadow> textShadows = [
+    Shadow(color: Colors.black, offset: Offset(0, 1), blurRadius: 3),
+  ];
+
   // Rich Premium Gradients
   static const Gradient backgroundGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -131,6 +135,19 @@ class AppTheme {
     'volcano': 10,
   };
 
+  static Map<String, String> themeImagePaths = {
+    'deep_space': 'assets/images/themes/deep_space.png',
+    'midnight': 'assets/images/themes/tech_minute.png',
+    'desert': 'assets/images/themes/cyber_desert.png',
+    'aurora': 'assets/images/themes/boreal_aurore.png',
+    'volcano': 'assets/images/themes/volcan.png',
+    'cyber_pink': 'assets/images/themes/rose.png',
+    'emerald': 'assets/images/themes/emerald_dream.png',
+    'ocean': 'assets/images/themes/ocean_dive.png',
+    'sunset': 'assets/images/themes/sunset.png',
+    'default_neon': 'assets/images/themes/neon_default.png',
+  };
+
   static const Gradient cardGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -216,24 +233,30 @@ class AppBackground extends ConsumerWidget {
     final activeTheme = ref.watch(userProvider).activeTheme;
     final gradient =
         AppTheme.themes[activeTheme] ?? AppTheme.backgroundGradient;
+    final imagePath = AppTheme.themeImagePaths[activeTheme];
 
     return Scaffold(
       body: Stack(
         children: [
-          // Main Gradient
-          Container(decoration: BoxDecoration(gradient: gradient)),
-
-          // Subtle Stardust effect
+          // Background: Image if exists, otherwise Gradient
           Positioned.fill(
-            child: IgnorePointer(
-              child: CustomPaint(
-                painter: _StarPainter(
-                  seed: activeTheme.hashCode,
-                  opacity: 0.15,
+            child: imagePath != null
+                ? Image.asset(imagePath, fit: BoxFit.cover)
+                : Container(decoration: BoxDecoration(gradient: gradient)),
+          ),
+
+          // Subtle Stardust effect (only on gradients usually, but kept for all if needed)
+          if (imagePath == null)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _StarPainter(
+                    seed: activeTheme.hashCode,
+                    opacity: 0.15,
+                  ),
                 ),
               ),
             ),
-          ),
 
           // Content
           child,

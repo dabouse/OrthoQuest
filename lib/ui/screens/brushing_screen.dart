@@ -329,7 +329,7 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
                     center: Text(
                       "${(secondsRemaining ~/ 60).toString().padLeft(2, '0')}:${(secondsRemaining % 60).toString().padLeft(2, '0')}",
                       style: const TextStyle(
-                        fontSize: 50, // Increased from 40
+                        fontSize: 44, // Reduced from 50
                         fontWeight: FontWeight.bold,
                       ),
                     ),
