@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -35,16 +36,34 @@ class DatabaseService {
   static const String colBadgeId = 'badge_id';
   static const String colUnlockedAt = 'unlocked_at';
 
+  static const String tableUnlockedAssets = 'unlocked_assets';
+  static const String colAssetId = 'asset_id';
+  static const String colAssetType = 'asset_type'; // 'theme', 'sticker', etc.
+
   factory DatabaseService() {
     return _instance;
   }
 
   DatabaseService._internal();
 
+  static final _dbLock = Completer<Database>();
+  static bool _dbInitializing = false;
+
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
+
+    if (!_dbInitializing) {
+      _dbInitializing = true;
+      try {
+        _database = await _initDatabase();
+        _dbLock.complete(_database);
+      } catch (e) {
+        // En cas d'erreur, on permet une nouvelle tentative plus tard
+        _dbInitializing = false;
+        rethrow;
+      }
+    }
+    return _dbLock.future;
   }
 
   Future<Database> _initDatabase() async {
@@ -53,7 +72,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -104,6 +123,27 @@ class DatabaseService {
         $colUnlockedAt TEXT
       )
     ''');
+
+    // Create unlocked_assets table
+    await db.execute('''
+      CREATE TABLE $tableUnlockedAssets(
+        $colAssetId TEXT PRIMARY KEY,
+        $colAssetType TEXT,
+        $colUnlockedAt TEXT
+      )
+    ''');
+
+    // Insert default theme
+    await db.insert(tableUnlockedAssets, {
+      colAssetId: 'default_neon',
+      colAssetType: 'theme',
+      colUnlockedAt: DateTime.now().toIso8601String(),
+    });
+
+    await db.insert(tableSettings, {
+      colKey: 'active_theme',
+      colValue: 'default_neon',
+    });
   }
 
   // Handle database upgrades
@@ -129,23 +169,51 @@ class DatabaseService {
       ''');
     }
 
-    if (oldVersion < 4) {
-      // Fix for "no such column: id" in user_stats if schema was malformed
-      // We drop and recreate to be safe
-      await db.execute('DROP TABLE IF EXISTS $tableUserStats');
+    if (oldVersion < 5) {
       await db.execute('''
-        CREATE TABLE $tableUserStats(
-          $colId INTEGER PRIMARY KEY,
-          $colXp INTEGER,
-          $colLevel INTEGER
+        CREATE TABLE IF NOT EXISTS $tableUnlockedAssets(
+          $colAssetId TEXT PRIMARY KEY,
+          $colAssetType TEXT,
+          $colUnlockedAt TEXT
         )
       ''');
-      await db.insert(tableUserStats, {colId: 1, colXp: 0, colLevel: 1});
+      // Débloquer le thème et l'avatar par défaut
+      await db.insert(tableUnlockedAssets, {
+        colAssetId: 'default_neon',
+        colAssetType: 'theme',
+        colUnlockedAt: DateTime.now().toIso8601String(),
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
 
-      // Also ensure user_badges exists if skipped
-      await db.execute(
-        'CREATE TABLE IF NOT EXISTS $tableUserBadges($colBadgeId TEXT PRIMARY KEY, $colUnlockedAt TEXT)',
+      await db.insert(tableUnlockedAssets, {
+        colAssetId: '👤',
+        colAssetType: 'avatar',
+        colUnlockedAt: DateTime.now().toIso8601String(),
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+
+      // S'assurer que les paramètres actifs existent
+      final List<Map<String, dynamic>> themeMaps = await db.query(
+        tableSettings,
+        where: '$colKey = ?',
+        whereArgs: ['active_theme'],
       );
+      if (themeMaps.isEmpty) {
+        await db.insert(tableSettings, {
+          colKey: 'active_theme',
+          colValue: 'default_neon',
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      final List<Map<String, dynamic>> avatarMaps = await db.query(
+        tableSettings,
+        where: '$colKey = ?',
+        whereArgs: ['active_avatar'],
+      );
+      if (avatarMaps.isEmpty) {
+        await db.insert(tableSettings, {
+          colKey: 'active_avatar',
+          colValue: '👤',
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
     }
   }
 
@@ -197,6 +265,29 @@ class DatabaseService {
     }
 
     return summaries;
+  }
+
+  /// Retourne le total exact en millisecondes pour la journée de reporting donnée.
+  /// Si [date] est null, utilise la date actuelle adjusted (5 AM).
+  Future<int> getTodayTotalMs([DateTime? date]) async {
+    final reportDate = OrthoDateUtils.getReportingDate(date ?? DateTime.now());
+    final sessions = await getSessions();
+    int totalMs = 0;
+
+    for (var session in sessions) {
+      if (session.endTime == null) continue;
+
+      final sessionReportDate = OrthoDateUtils.getReportingDate(
+        session.startTime,
+      );
+      if (sessionReportDate.year == reportDate.year &&
+          sessionReportDate.month == reportDate.month &&
+          sessionReportDate.day == reportDate.day) {
+        final duration = session.endTime!.difference(session.startTime);
+        totalMs += duration.inMilliseconds;
+      }
+    }
+    return totalMs;
   }
 
   Future<Session?> getLastOpenSession() async {
@@ -279,6 +370,26 @@ class DatabaseService {
     }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
+  // Asset Methods
+  Future<List<String>> getUnlockedAssets(String type) async {
+    final db = await database;
+    final maps = await db.query(
+      tableUnlockedAssets,
+      where: '$colAssetType = ?',
+      whereArgs: [type],
+    );
+    return maps.map((e) => e[colAssetId] as String).toList();
+  }
+
+  Future<void> unlockAsset(String assetId, String type) async {
+    final db = await database;
+    await db.insert(tableUnlockedAssets, {
+      colAssetId: assetId,
+      colAssetType: type,
+      colUnlockedAt: DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
   /// Injecte des données fictives aléatoires pour la démonstration.
   Future<void> _seedDummyData() async {
     final random = Random();
@@ -287,23 +398,28 @@ class DatabaseService {
     // Clear existing
     await db.delete(tableSessions);
     await db.delete(tableUserBadges);
+    try {
+      await db.delete(tableUnlockedAssets);
+    } catch (_) {
+      // Table might not exist yet if migration failed
+    }
 
     // Récupérer l'objectif pour s'assurer de le dépasser
     final goalStr = await getSetting('daily_goal');
     final dailyGoal = int.tryParse(goalStr ?? '13') ?? 13;
 
     final now = DateTime.now();
-    // Générer des données pour les 14 derniers jours
-    for (int i = 0; i < 14; i++) {
+    // Générer des données pour les 21 derniers jours (plus de volume)
+    for (int i = 0; i < 21; i++) {
       final dayDate = now.subtract(Duration(days: i));
 
-      // On force la réussite pour les 10 derniers jours pour voir le badge rose
+      // On force la réussite pour les 10 derniers jours pour voir le streak
       bool forceSuccess = i < 10;
 
       // Session de jour
-      if (forceSuccess || random.nextDouble() > 0.2) {
-        final startHour = 7 + random.nextInt(2); // 7h-8h
-        final durationHours = forceSuccess ? 6 : (4 + random.nextInt(4));
+      if (forceSuccess || random.nextDouble() > 0.3) {
+        final startHour = 7 + random.nextInt(3); // 7h-10h
+        final durationHours = forceSuccess ? 5 : (3 + random.nextInt(5));
         final startDay = DateTime(
           dayDate.year,
           dayDate.month,
@@ -317,18 +433,17 @@ class DatabaseService {
           Session(
             startTime: startDay,
             endTime: endDay,
-            stickerId: random.nextInt(2), // Plutôt motivé (0 ou 1)
+            stickerId: random.nextInt(4),
           ),
         );
       }
 
       // Session de nuit
       if (forceSuccess || random.nextDouble() > 0.1) {
-        final startHour = 20 + random.nextInt(2); // 20h-21h
-        // Si forceSuccess, on s'assure que jour + nuit > dailyGoal
+        final startHour = 19 + random.nextInt(3); // 19h-22h
         final durationHours = forceSuccess
-            ? (dailyGoal - 5 + random.nextInt(3))
-            : (7 + random.nextInt(4));
+            ? (dailyGoal - 4 + random.nextInt(4))
+            : (6 + random.nextInt(6));
         final startNight = DateTime(
           dayDate.year,
           dayDate.month,
@@ -342,31 +457,79 @@ class DatabaseService {
           Session(
             startTime: startNight,
             endTime: endNight,
-            stickerId: random.nextInt(2),
+            stickerId: random.nextInt(4),
           ),
         );
       }
     }
 
-    // Débloquer 2 à 4 badges au hasard
+    // Débloquer des badges aléatoires
     final badgeIds = appBadges.map((b) => b.id).toList();
     badgeIds.shuffle();
-    final numBadges = 2 + random.nextInt(3);
+    final numBadges = 1 + random.nextInt(4);
     for (int i = 0; i < numBadges; i++) {
       await unlockBadge(badgeIds[i]);
     }
 
-    // Toujours débloquer Steel Teeth si on force le streak
-    await unlockBadge('steel_teeth');
+    // Génération aléatoire du niveau et récompenses (1 à 25)
+    final level = 1 + random.nextInt(25);
+    final xp = (level - 1) * 1000 + random.nextInt(1000);
+    await updateUserStats(xp, level);
+
+    // Débloquer les actifs de base
+    await unlockAsset('default_neon', 'theme');
+    await unlockAsset('👤', 'avatar');
+
+    // Débloquer selon le niveau généré
+    final List<String> unlockedThemes = ['default_neon'];
+    final List<String> unlockedAvatars = ['👤'];
+
+    // Débloquer les thèmes selon le niveau généré (1 par niveau)
+    for (int lvl = 2; lvl <= level; lvl++) {
+      String? themeId;
+      if (lvl == 2) themeId = 'deep_space';
+      if (lvl == 3) themeId = 'aurora';
+      if (lvl == 4) themeId = 'sunset';
+      if (lvl == 5) themeId = 'midnight';
+      if (lvl == 6) themeId = 'desert';
+      if (lvl == 7) themeId = 'emerald';
+      if (lvl == 8) themeId = 'cyber_pink';
+      if (lvl == 9) themeId = 'ocean';
+      if (lvl == 10) themeId = 'volcano';
+
+      if (themeId != null) {
+        await unlockAsset(themeId, 'theme');
+        unlockedThemes.add(themeId);
+      }
+    }
+
+    if (level >= 2) {
+      await unlockAsset('🦖', 'avatar');
+      unlockedAvatars.add('🦖');
+    }
+    if (level >= 7) {
+      await unlockAsset('🛡️', 'avatar');
+      unlockedAvatars.add('🛡️');
+    }
+    if (level >= 12) {
+      await unlockAsset('🚀', 'avatar');
+      unlockedAvatars.add('🚀');
+    }
+    if (level >= 20) {
+      await unlockAsset('👑', 'avatar');
+      unlockedAvatars.add('👑');
+    }
+
+    // Choisir un thème et avatar actif au hasard parmi ceux débloqués
+    final activeTheme = unlockedThemes[random.nextInt(unlockedThemes.length)];
+    final activeAvatar =
+        unlockedAvatars[random.nextInt(unlockedAvatars.length)];
+    await updateSetting('active_theme', activeTheme);
+    await updateSetting('active_avatar', activeAvatar);
 
     // Mettre à jour les stats de brossage
-    final totalBrushings = 15 + random.nextInt(10);
+    final totalBrushings = 10 + random.nextInt(30);
     await updateSetting('total_brushings', totalBrushings.toString());
-
-    // Ajouter de l'XP et un niveau aléatoire
-    final randomXp = 3000 + random.nextInt(2000);
-    final level = (randomXp / 1000).floor() + 1;
-    await updateUserStats(randomXp, level);
   }
 
   // Wrapper for public access if needed (the existing code had seedDummyData public)
@@ -377,10 +540,19 @@ class DatabaseService {
     final db = await database;
     await db.delete(tableSessions);
     await db.delete(tableUserBadges);
+    await db.delete(tableUnlockedAssets);
     await db.update(tableUserStats, {
       colXp: 0,
       colLevel: 1,
     }, where: '$colId = 1');
     await updateSetting('total_brushings', '0');
+    await updateSetting('active_theme', 'default_neon');
+    await updateSetting('active_avatar', '👤');
+    await updateSetting('last_seen_level', '1');
+    await updateSetting('has_unseen_reward', 'false');
+
+    // Redébloquer le thème par défaut
+    await unlockAsset('default_neon', 'theme');
+    await unlockAsset('👤', 'avatar');
   }
 }

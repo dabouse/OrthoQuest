@@ -2,18 +2,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/database_service.dart';
 import '../utils/date_utils.dart';
 import '../models/session.dart';
+import '../utils/app_theme.dart';
 
 class UserState {
   final int xp;
   final int level;
   final int streak;
   final List<String> unlockedBadges;
+  final String activeTheme;
+  final List<String> unlockedThemes;
+  final int lastSeenLevel;
+  final bool hasUnseenReward;
+  final String? lastUnlockedReward;
 
   UserState({
     this.xp = 0,
     this.level = 1,
     this.streak = 0,
     this.unlockedBadges = const [],
+    this.activeTheme = 'default_neon',
+    this.unlockedThemes = const ['default_neon'],
+    this.lastSeenLevel = 0,
+    this.hasUnseenReward = false,
+    this.lastUnlockedReward,
   });
 
   UserState copyWith({
@@ -21,12 +32,22 @@ class UserState {
     int? level,
     int? streak,
     List<String>? unlockedBadges,
+    String? activeTheme,
+    List<String>? unlockedThemes,
+    int? lastSeenLevel,
+    bool? hasUnseenReward,
+    String? lastUnlockedReward,
   }) {
     return UserState(
       xp: xp ?? this.xp,
       level: level ?? this.level,
       streak: streak ?? this.streak,
       unlockedBadges: unlockedBadges ?? this.unlockedBadges,
+      activeTheme: activeTheme ?? this.activeTheme,
+      unlockedThemes: unlockedThemes ?? this.unlockedThemes,
+      lastSeenLevel: lastSeenLevel ?? this.lastSeenLevel,
+      hasUnseenReward: hasUnseenReward ?? this.hasUnseenReward,
+      lastUnlockedReward: lastUnlockedReward ?? this.lastUnlockedReward,
     );
   }
 }
@@ -52,12 +73,39 @@ class UserNotifier extends Notifier<UserState> {
 
     final badges = await DatabaseService().getUnlockedBadges();
 
+    // Load themes & avatars
+    final activeTheme = await DatabaseService().getSetting('active_theme');
+    final unlockedThemes = await DatabaseService().getUnlockedAssets('theme');
+    final lastSeenStr = await DatabaseService().getSetting('last_seen_level');
+    final hasUnseenStr = await DatabaseService().getSetting(
+      'has_unseen_reward',
+    );
+    final hasUnseen = hasUnseenStr == 'true';
+    final lastSeen = int.tryParse(lastSeenStr ?? '0') ?? 0;
+
+    final currentLevel = stats['level'] as int;
+    final filteredThemes = unlockedThemes.where((themeId) {
+      final requiredLevel = AppTheme.themeUnlockLevels[themeId] ?? 1;
+      return currentLevel >= requiredLevel;
+    }).toList();
+
+    if (!filteredThemes.contains('default_neon')) {
+      filteredThemes.add('default_neon');
+    }
+
     state = state.copyWith(
       xp: stats['xp'] as int,
-      level: stats['level'] as int,
+      level: currentLevel,
       streak: streak,
       unlockedBadges: badges,
+      activeTheme: activeTheme ?? 'default_neon',
+      unlockedThemes: filteredThemes,
+      lastSeenLevel: lastSeen == 0 ? currentLevel : lastSeen,
+      hasUnseenReward: hasUnseen,
     );
+
+    // Ensure all rewards for current level are unlocked (useful for updates)
+    _checkLevelRewards(state.level);
   }
 
   int _calculateStreak(Map<DateTime, int> summaries, int dailyGoal) {
@@ -93,13 +141,43 @@ class UserNotifier extends Notifier<UserState> {
   }
 
   Future<void> addXp(int amount) async {
+    int oldLevel = state.level;
     int newXp = state.xp + amount;
-    int newLevel = (newXp / 1000).floor() + 1; // Level up every 1000 XP
+    int newLevel = (newXp / 1000).floor() + 1;
 
-    state = state.copyWith(xp: newXp, level: newLevel);
+    // Check for level rewards
+    String? reward;
+    if (newLevel > oldLevel) {
+      reward = _checkLevelRewards(newLevel);
+    }
+
+    state = state.copyWith(
+      xp: newXp,
+      level: newLevel,
+      lastUnlockedReward: reward,
+    );
 
     // Persist to DB
     await DatabaseService().updateUserStats(newXp, newLevel);
+  }
+
+  String? _checkLevelRewards(int level) {
+    // Vérifier s'il y a un thème à débloquer pour ce niveau précis
+    String? themeIdToUnlock;
+    AppTheme.themeUnlockLevels.forEach((id, reqLevel) {
+      if (reqLevel == level && id != 'default_neon') {
+        themeIdToUnlock = id;
+      }
+    });
+
+    if (themeIdToUnlock != null) {
+      if (!state.unlockedThemes.contains(themeIdToUnlock!)) {
+        unlockTheme(themeIdToUnlock!);
+        setHasUnseenReward(true);
+        return AppTheme.themeNames[themeIdToUnlock] ?? themeIdToUnlock;
+      }
+    }
+    return null;
   }
 
   Future<void> unlockBadge(String badgeId) async {
@@ -178,6 +256,35 @@ class UserNotifier extends Notifier<UserState> {
 
   void incrementStreak() {
     // Logic included in loading stats logic for now
+  }
+
+  Future<void> setTheme(String themeId) async {
+    if (!state.unlockedThemes.contains(themeId)) return;
+
+    state = state.copyWith(activeTheme: themeId);
+    await DatabaseService().updateSetting('active_theme', themeId);
+  }
+
+  Future<void> unlockTheme(String themeId) async {
+    if (state.unlockedThemes.contains(themeId)) return;
+
+    final newThemes = List<String>.from(state.unlockedThemes)..add(themeId);
+    state = state.copyWith(unlockedThemes: newThemes);
+
+    await DatabaseService().unlockAsset(themeId, 'theme');
+  }
+
+  Future<void> markLevelAsSeen(int level) async {
+    state = state.copyWith(lastSeenLevel: level);
+    await DatabaseService().updateSetting('last_seen_level', level.toString());
+  }
+
+  Future<void> setHasUnseenReward(bool value) async {
+    state = state.copyWith(hasUnseenReward: value);
+    await DatabaseService().updateSetting(
+      'has_unseen_reward',
+      value.toString(),
+    );
   }
 }
 

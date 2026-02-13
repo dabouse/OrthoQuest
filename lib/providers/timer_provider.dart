@@ -317,7 +317,6 @@ class TimerNotifier extends Notifier<TimerState> {
   }
 
   /// Appelé lorsque l'application passe en arrière-plan.
-  /// Sauvegarde l'état actuel pour garantir qu'aucune donnée ne soit perdue.
   Future<void> onAppPaused() async {
     if (state.isRunning) {
       await _saveCurrentSession();
@@ -327,21 +326,9 @@ class TimerNotifier extends Notifier<TimerState> {
   /// Appelé lorsque l'application revient au premier plan.
   /// Vérifie s'il y a une session ouverte et la restaure si nécessaire.
   Future<void> onAppResumed() async {
-    if (state.isRunning && state.startTime != null) {
-      // Recalculer la durée actuelle au cas où l'app serait restée
-      // en arrière-plan pendant un moment
-      final duration = DateTime.now().difference(state.startTime!);
-      state = state.copyWith(currentSessionDuration: duration);
-      // Relancer les timers si nécessaire
-      if (_ticker == null || !_ticker!.isActive) {
-        _startTicker();
-      }
-      if (_saveTimer == null || !_saveTimer!.isActive) {
-        _startPeriodicSave();
-      }
-      if (_notificationTimer == null || !_notificationTimer!.isActive) {
-        _startNotificationUpdates();
-      }
-    }
+    // Recharger systématiquement depuis la DB pour capter les changements du widget
+    await _checkOpenSession();
+    await _loadDailyStats();
+    await _loadHistory();
   }
 }

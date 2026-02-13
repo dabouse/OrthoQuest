@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/user_provider.dart';
 
 class AppTheme {
   // Neon Palette
@@ -12,20 +14,122 @@ class AppTheme {
   static const Color warningColor = Color(0xFFFFD300); // Neon Yellow
   static const Color errorColor = Color(0xFFFF3131); // Neon Red
 
-  // Dark Background Palette
-  static const Color backgroundStart = Color(0xFF0F0C29); // Deep Blue/Black
-  static const Color backgroundEnd = Color(0xFF24243E); // Lighter Deep Blue
-
+  // Rich Premium Gradients
   static const Gradient backgroundGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF1A1A2E), // Dark Navy
-      Color(0xFF16213E), // Slightly lighter
-      Color(0xFF0F3460), // Deep blue accent
+      Color(0xFF0F0C29), // Night Sky
+      Color(0xFF302B63), // Royal blue
+      Color(0xFF24243E), // Deep space
     ],
-    stops: [0.0, 0.5, 1.0],
   );
+
+  static const Gradient spaceGradient = RadialGradient(
+    center: Alignment(0.7, -0.6),
+    radius: 1.5,
+    colors: [
+      Color(0xFF2B1055), // Deep Purple glow
+      Color(0xFF000000), // Pure Black
+    ],
+  );
+
+  static const Gradient auroraGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0xFF00416A), // Dark blue
+      Color(0xFF00B09B), // Aurora green
+      Color(0xFF0F0C29), // Back to dark
+    ],
+    stops: [0.0, 0.4, 1.0],
+  );
+
+  static const Gradient sunsetGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0xFF2C3E50), // Midnight blue
+      Color(0xFFFD746C), // Sunset coral
+      Color(0xFF0F2027), // Deep abyss
+    ],
+    stops: [0.1, 0.5, 1.0],
+  );
+
+  static const Gradient midnightGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF232526), Color(0xFF414345)],
+  );
+
+  static const Gradient desertGradient = LinearGradient(
+    begin: Alignment.bottomLeft,
+    end: Alignment.topRight,
+    colors: [Color(0xFFFEB47B), Color(0xFF3F2B96)],
+  );
+
+  static const Gradient emeraldGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
+  );
+
+  static const Gradient cyberPinkGradient = RadialGradient(
+    center: Alignment.center,
+    radius: 1.2,
+    colors: [Color(0xFFFF00CC), Color(0xFF333399)],
+  );
+
+  static const Gradient oceanGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFF2193b0), Color(0xFF6dd5ed)],
+  );
+
+  static const Gradient volcanoGradient = LinearGradient(
+    begin: Alignment.bottomCenter,
+    end: Alignment.topCenter,
+    colors: [Color(0xFFf12711), Color(0xFFf5af19)],
+  );
+
+  static Map<String, Gradient> themes = {
+    'default_neon': backgroundGradient,
+    'deep_space': spaceGradient,
+    'aurora': auroraGradient,
+    'sunset': sunsetGradient,
+    'midnight': midnightGradient,
+    'desert': desertGradient,
+    'emerald': emeraldGradient,
+    'cyber_pink': cyberPinkGradient,
+    'ocean': oceanGradient,
+    'volcano': volcanoGradient,
+  };
+
+  static Map<String, String> themeNames = {
+    'default_neon': 'Néon Classique',
+    'deep_space': 'Espace Profond',
+    'aurora': 'Aurore Boréale',
+    'sunset': 'Coucher de Soleil',
+    'midnight': 'Minuit Tech',
+    'desert': 'Désert Cyber',
+    'emerald': 'Rêve Émeraude',
+    'cyber_pink': 'Vibration Rose',
+    'ocean': 'Plongée Bleue',
+    'volcano': 'Fureur Volcanique',
+  };
+
+  static Map<String, int> themeUnlockLevels = {
+    'default_neon': 1,
+    'deep_space': 2,
+    'aurora': 3,
+    'sunset': 4,
+    'midnight': 5,
+    'desert': 6,
+    'emerald': 7,
+    'cyber_pink': 8,
+    'ocean': 9,
+    'volcano': 10,
+  };
 
   static const Gradient cardGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -102,18 +206,63 @@ class AppTheme {
   }
 }
 
-class AppBackground extends StatelessWidget {
+class AppBackground extends ConsumerWidget {
   final Widget child;
 
   const AppBackground({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) {
-    return SizedBox.expand(
-      child: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
-        child: child,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeTheme = ref.watch(userProvider).activeTheme;
+    final gradient =
+        AppTheme.themes[activeTheme] ?? AppTheme.backgroundGradient;
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Main Gradient
+          Container(decoration: BoxDecoration(gradient: gradient)),
+
+          // Subtle Stardust effect
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: _StarPainter(
+                  seed: activeTheme.hashCode,
+                  opacity: 0.15,
+                ),
+              ),
+            ),
+          ),
+
+          // Content
+          child,
+        ],
       ),
     );
   }
+}
+
+class _StarPainter extends CustomPainter {
+  final int seed;
+  final double opacity;
+
+  _StarPainter({required this.seed, required this.opacity});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.white.withValues(alpha: opacity);
+
+    // Simple deterministic pseudo-random stars
+    for (int i = 0; i < 100; i++) {
+      final double x = ((i * 137 + seed) % 1000) / 1000 * size.width;
+      final double y = ((i * 251 + seed) % 1000) / 1000 * size.height;
+      final double radius = ((i % 3) + 1) / 2;
+
+      canvas.drawCircle(Offset(x, y), radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_StarPainter oldDelegate) => seed != oldDelegate.seed;
 }

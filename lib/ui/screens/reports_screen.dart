@@ -36,18 +36,27 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Future<void> _loadStats() async {
-    final stats = await DatabaseService().getDailySummaries();
-    final sessions = await DatabaseService().getSessions();
-    setState(() {
-      _allStats = stats;
-      _allSessions = sessions;
-      _isLoading = false;
-      _selectedDate = DateTime(
-        _focusDate.year,
-        _focusDate.month,
-        _focusDate.day,
-      );
-    });
+    try {
+      final stats = await DatabaseService().getDailySummaries();
+      final sessions = await DatabaseService().getSessions();
+      if (mounted) {
+        setState(() {
+          _allStats = stats;
+          _allSessions = sessions;
+          _isLoading = false;
+          _selectedDate = DateTime(
+            _focusDate.year,
+            _focusDate.month,
+            _focusDate.day,
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint("Erreur chargement statistiques : $e");
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   DateTime _getStartOfPeriod() {
@@ -282,53 +291,30 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   setState(() {
                                     final index =
                                         barResponse.spot!.touchedBarGroupIndex;
-                                    final stackIndex =
-                                        barResponse.spot!.touchedStackItemIndex;
 
                                     final date = startOfPeriod.add(
                                       Duration(days: index),
                                     );
 
-                                    // Récupérer et trier les sessions de ce jour
-                                    final daySessions = _allSessions.where((s) {
-                                      if (s.endTime == null) return false;
-                                      return DateUtils.isSameDay(
-                                        OrthoDateUtils.getReportingDate(
-                                          s.startTime,
-                                        ),
-                                        DateTime(
-                                          date.year,
-                                          date.month,
-                                          date.day,
-                                        ),
-                                      );
-                                    }).toList();
-                                    daySessions.sort(
-                                      (a, b) =>
-                                          a.startTime.compareTo(b.startTime),
+                                    final targetDate = DateTime(
+                                      date.year,
+                                      date.month,
+                                      date.day,
                                     );
 
-                                    setState(() {
-                                      final targetDate = DateTime(
-                                        date.year,
-                                        date.month,
-                                        date.day,
-                                      );
-
-                                      if (_selectedDate != null &&
-                                          DateUtils.isSameDay(
-                                            _selectedDate!,
-                                            targetDate,
-                                          )) {
-                                        // Si on reclique sur le même jour, on tout déselectionne
-                                        _selectedDate = null;
-                                        _selectedSessionId = null;
-                                      } else {
-                                        // Sinon on sélectionne le jour mais on ne sélectionne pas de session spécifique
-                                        _selectedDate = targetDate;
-                                        _selectedSessionId = null;
-                                      }
-                                    });
+                                    if (_selectedDate != null &&
+                                        DateUtils.isSameDay(
+                                          _selectedDate!,
+                                          targetDate,
+                                        )) {
+                                      // Si on reclique sur le même jour, on tout déselectionne
+                                      _selectedDate = null;
+                                      _selectedSessionId = null;
+                                    } else {
+                                      // Sinon on sélectionne le jour
+                                      _selectedDate = targetDate;
+                                      _selectedSessionId = null;
+                                    }
                                   });
                                 },
                               ),

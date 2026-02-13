@@ -10,6 +10,7 @@ import '../widgets/home/level_bar.dart';
 import 'reports_screen.dart';
 import 'settings_screen.dart';
 import 'badges_screen.dart';
+import '../widgets/level_up_dialog.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -17,6 +18,21 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userState = ref.watch(userProvider);
+
+    // Écoute les montées de niveau pour afficher la célébration
+    ref.listen(userProvider, (previous, next) {
+      if (next.level > next.lastSeenLevel) {
+        // Marquer immédiatement comme vu pour éviter les répétitions
+        ref.read(userProvider.notifier).markLevelAsSeen(next.level);
+
+        // Afficher la célébration
+        LevelUpDialog.show(
+          context,
+          next.level,
+          reward: next.lastUnlockedReward,
+        );
+      }
+    });
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -112,27 +128,38 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: AppBackground(
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-              child: Column(
-                children: [
-                  // Main Card wrapped in VibrantCard
-                  const VibrantCard(
-                    child: Column(
-                      children: [
-                        DailyProgressCard(),
-                        SizedBox(height: 12),
-                        HistoryCard(),
-                        SizedBox(height: 12),
-                        LevelBar(),
-                      ],
-                    ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                const SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      // Contenu principal
+                      VibrantCard(
+                        child: Column(
+                          children: [
+                            DailyProgressCard(),
+                            SizedBox(height: 12),
+                            HistoryCard(),
+                            SizedBox(height: 12),
+                            LevelBar(),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 30),
-                  const ActionButtons(),
-                ],
-              ),
+                ),
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Container(
+                    padding: const EdgeInsets.only(top: 20, bottom: 10),
+                    alignment: Alignment.center,
+                    child: const ActionButtons(),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

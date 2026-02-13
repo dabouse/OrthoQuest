@@ -81,33 +81,13 @@ class _OrthoQuestAppState extends ConsumerState<OrthoQuestApp>
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Container(
               decoration: const BoxDecoration(color: Colors.black),
-              child: Center(
+              child: const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.secondaryColor.withValues(
-                              alpha: 0.5,
-                            ),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: Image.asset(
-                        'assets/images/logo.png',
-                        width: 300,
-                        height: 300,
-                      ),
-                    ),
-                    const SizedBox(height: 50),
-                    const CircularProgressIndicator(
-                      color: AppTheme.secondaryColor,
-                    ),
+                    LoadingLogo(),
+                    SizedBox(height: 50),
+                    CircularProgressIndicator(color: AppTheme.secondaryColor),
                   ],
                 ),
               ),
@@ -119,6 +99,37 @@ class _OrthoQuestAppState extends ConsumerState<OrthoQuestApp>
               ? const HomeScreen()
               : const OnboardingScreen();
         },
+      ),
+    );
+  }
+}
+
+class LoadingLogo extends StatelessWidget {
+  const LoadingLogo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withValues(alpha: 0.4),
+            blurRadius: 60,
+            spreadRadius: 15,
+          ),
+          BoxShadow(
+            color: AppTheme.secondaryColor.withValues(alpha: 0.3),
+            blurRadius: 120,
+            spreadRadius: 25,
+          ),
+        ],
+      ),
+      child: Image.asset(
+        'assets/images/logo.png',
+        width: 330,
+        height: 330,
+        fit: BoxFit.contain,
       ),
     );
   }

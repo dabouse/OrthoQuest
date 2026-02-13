@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import '../../../providers/user_provider.dart';
 import '../../../utils/app_theme.dart';
-import '../../screens/badges_screen.dart';
+import '../../screens/rewards_screen.dart';
 
 class LevelBar extends ConsumerWidget {
   const LevelBar({super.key});
@@ -16,7 +16,7 @@ class LevelBar extends ConsumerWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const BadgesScreen()),
+          MaterialPageRoute(builder: (context) => const RewardsScreen()),
         );
       },
       child: Column(

@@ -29,18 +29,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
-    final dayEnd = await DatabaseService().getSetting('day_end_hour');
-    final brushing = await DatabaseService().getSetting('brushing_duration');
-    final goal = await DatabaseService().getSetting('daily_goal');
-    final showAdvanced = await DatabaseService().getSetting('show_advanced');
+    try {
+      final dayEnd = await DatabaseService().getSetting('day_end_hour');
+      final brushing = await DatabaseService().getSetting('brushing_duration');
+      final goal = await DatabaseService().getSetting('daily_goal');
+      final showAdvanced = await DatabaseService().getSetting('show_advanced');
 
-    setState(() {
-      _dayEndHour = int.tryParse(dayEnd ?? '5') ?? 5;
-      _brushingDuration = int.tryParse(brushing ?? '120') ?? 120;
-      _dailyGoal = int.tryParse(goal ?? '13') ?? 13;
-      _showAdvanced = showAdvanced == 'true';
-      _isLoading = false;
-    });
+      if (mounted) {
+        setState(() {
+          _dayEndHour = int.tryParse(dayEnd ?? '5') ?? 5;
+          _brushingDuration = int.tryParse(brushing ?? '120') ?? 120;
+          _dailyGoal = int.tryParse(goal ?? '13') ?? 13;
+          _showAdvanced = showAdvanced == 'true';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Erreur chargement paramètres : $e");
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   void _handleVersionTap() {
