@@ -245,13 +245,32 @@ class AppBackground extends ConsumerWidget {
     final imagePath = AppTheme.themeImagePaths[activeTheme];
     debugPrint('[AppBackground] theme=$activeTheme, imagePath=$imagePath');
 
+    // Décoder l'image à la taille d'affichage (évite de bloquer le main thread avec de grosses images)
+    final size = MediaQuery.sizeOf(context);
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final cacheWidth = (size.width * dpr).round().clamp(1, 1080);
+    final cacheHeight = (size.height * dpr).round().clamp(1, 1920);
+
     return Scaffold(
       body: Stack(
         children: [
           // Background: Image if exists, otherwise Gradient
           Positioned.fill(
             child: imagePath != null
-                ? Image.asset(imagePath, fit: BoxFit.cover)
+                ? Image.asset(
+                    imagePath,
+                    fit: BoxFit.cover,
+                    cacheWidth: cacheWidth,
+                    cacheHeight: cacheHeight,
+                    frameBuilder: (context, child, frame, _) {
+                      // Afficher le gradient immédiatement pendant le chargement
+                      if (frame == null) {
+                        return Container(
+                            decoration: BoxDecoration(gradient: gradient));
+                      }
+                      return child;
+                    },
+                  )
                 : Container(decoration: BoxDecoration(gradient: gradient)),
           ),
 

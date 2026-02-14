@@ -159,7 +159,8 @@ class DailyProgressCard extends ConsumerWidget {
                     ),
                     // Bordure intérieure (210 = 2×radius - lineWidth, bord intérieur du ring)
                     Positioned(
-                      top: 20,
+                      top: 20
+                      ,
                       left: 0,
                       right: 0,
                       child: Center(

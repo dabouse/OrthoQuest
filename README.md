@@ -24,6 +24,11 @@ L'objectif est d'atteindre une durée cible quotidienne (par défaut 12-13h) pou
 -   **Animations** : `lottie`, `avatar_glow`
 -   **Fond d'écran** : implémentation native Android (canal Méthode) avec préservation des couleurs et traitement en arrière-plan
 
+## ⚡ Optimisations de performance
+
+- **Images de fond** : décodage à la taille d'affichage (`cacheWidth`/`cacheHeight`) pour éviter de bloquer le thread principal au démarrage.
+- **Placeholder** : le dégradé du thème s'affiche immédiatement pendant le chargement de l'image de fond.
+
 ## 🖼️ Images de thèmes
 
 Les fonds d'écran des thèmes sont optimisés pour garder une bonne qualité tout en limitant la taille de l'application. Pour ré-optimiser les images après ajout ou modification :

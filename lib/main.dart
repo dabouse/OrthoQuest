@@ -141,6 +141,8 @@ class LoadingLogo extends StatelessWidget {
         width: 330,
         height: 330,
         fit: BoxFit.contain,
+        cacheWidth: 660, // 2x pour écrans retina
+        cacheHeight: 660,
       ),
     );
   }
