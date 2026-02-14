@@ -16,7 +16,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   int _dayEndHour = 5;
-  int _brushingDuration = 120;
+  int _brushingDuration = 300;
   int _dailyGoal = 13;
   bool _isLoading = true;
   int _versionTapCount = 0;
@@ -33,14 +33,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final dayEnd = await DatabaseService().getSetting('day_end_hour');
       final brushing = await DatabaseService().getSetting('brushing_duration');
       final goal = await DatabaseService().getSetting('daily_goal');
-      final showAdvanced = await DatabaseService().getSetting('show_advanced');
+      // final showAdvanced = await DatabaseService().getSetting('show_advanced'); // Ne plus charger pour qu'il soit caché par défaut au démarrage
 
       if (mounted) {
         setState(() {
           _dayEndHour = int.tryParse(dayEnd ?? '5') ?? 5;
-          _brushingDuration = int.tryParse(brushing ?? '120') ?? 120;
+          _brushingDuration = int.tryParse(brushing ?? '300') ?? 300;
           _dailyGoal = int.tryParse(goal ?? '13') ?? 13;
-          _showAdvanced = showAdvanced == 'true';
+          _showAdvanced = false; // Toujours caché au démarrage
           _isLoading = false;
         });
       }
@@ -57,7 +57,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _versionTapCount++;
       if (_versionTapCount >= 5 && !_showAdvanced) {
         _showAdvanced = true;
-        DatabaseService().updateSetting('show_advanced', 'true');
+        // DatabaseService().updateSetting('show_advanced', 'true'); // Ne plus sauvegarder en BDD
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("🚀 Zone Avancée débloquée !"),
@@ -88,7 +88,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text("Paramètres")),
+      appBar: AppBar(
+        title: const Text(
+          "Paramètres",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            shadows: AppTheme.textShadows,
+          ),
+        ),
+      ),
       body: AppBackground(
         child: SafeArea(
           child: _isLoading
@@ -105,6 +113,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
+                              shadows: AppTheme.textShadows,
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -115,6 +124,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             "Les sessions après cette heure compteront pour le jour suivant. Actuellement : ${_dayEndHour}h00",
                             DropdownButton<int>(
                               value: _dayEndHour,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                shadows: AppTheme.textShadows,
+                              ),
                               underline: const SizedBox(),
                               items: List.generate(24, (index) {
                                 return DropdownMenuItem(
@@ -137,6 +150,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             "Temps à respecter pour le brossage des dents. Actuellement : $_brushingDuration sec",
                             DropdownButton<int>(
                               value: _brushingDuration,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                shadows: AppTheme.textShadows,
+                              ),
                               underline: const SizedBox(),
                               items: [60, 120, 180, 240, 300].map((val) {
                                 return DropdownMenuItem(
@@ -159,6 +176,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             "Nombre d'heures à porter l'appareil. Actuellement : $_dailyGoal h\nRecommandé : 12h à 13h / jour",
                             DropdownButton<int>(
                               value: _dailyGoal,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                shadows: AppTheme.textShadows,
+                              ),
                               underline: const SizedBox(),
                               items: List.generate(24, (index) => index + 1)
                                   .map((val) {
@@ -188,6 +209,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
+                              shadows: AppTheme.textShadows,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -195,22 +217,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             onTap: _handleVersionTap,
                             child: ListTile(
                               contentPadding: EdgeInsets.zero,
-                              title: const Text("Version"),
-                              subtitle: const Text("1.0.0"),
-                              leading: Icon(
+                              title: const Text(
+                                "Version",
+                                style: TextStyle(shadows: AppTheme.textShadows),
+                              ),
+                              subtitle: const Text(
+                                "1.0.0",
+                                style: TextStyle(shadows: AppTheme.textShadows),
+                              ),
+                              leading: const Icon(
                                 Icons.info_outline,
-                                color: Theme.of(context).primaryColor,
+                                color: AppTheme.secondaryColor,
                               ),
                             ),
                           ),
 
                           ListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: const Text("Développé pour"),
-                            subtitle: const Text("Damien & OrthoQuest"),
-                            leading: Icon(
+                            title: const Text(
+                              "Développé par",
+                              style: TextStyle(shadows: AppTheme.textShadows),
+                            ),
+                            subtitle: const Text(
+                              "Damien Brot",
+                              style: TextStyle(shadows: AppTheme.textShadows),
+                            ),
+                            leading: const Icon(
                               Icons.favorite_border,
-                              color: Theme.of(context).primaryColor,
+                              color: AppTheme.secondaryColor,
                             ),
                           ),
                         ],
@@ -230,6 +264,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: AppTheme.errorColor,
+                                shadows: AppTheme.textShadows,
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -247,6 +282,48 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   ),
                                 );
                               },
+                            ),
+                            const Divider(height: 32, color: Colors.white10),
+                            _buildActionTile(
+                              "Exporter les données",
+                              "Créer une sauvegarde de la base de données actuelle.",
+                              Icons.backup,
+                              Colors.blueAccent,
+                              () async {
+                                await DatabaseService().exportDatabase();
+                              },
+                            ),
+                            const Divider(height: 32, color: Colors.white10),
+                            _buildActionTile(
+                              "Importer les données",
+                              "Restaurer la base de données depuis un fichier externe.",
+                              Icons.restore,
+                              Colors.orangeAccent,
+                              () => _showConfirmationDialog(
+                                "Importer les données ?",
+                                "Cela va écraser toutes tes données actuelles par celles du fichier sélectionné.",
+                                "Importer",
+                                () async {
+                                  final success = await DatabaseService()
+                                      .importDatabase();
+                                  if (success) {
+                                    ref.read(timerProvider.notifier).build();
+                                    ref.read(userProvider.notifier).refresh();
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            "Données importées avec succès !",
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                isDangerous: true,
+                              ),
                             ),
                             const Divider(height: 32, color: Colors.white10),
                             _buildActionTile(
@@ -319,10 +396,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   ) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          shadows: AppTheme.textShadows,
+        ),
+      ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(fontSize: 12, color: Colors.white54),
+        style: const TextStyle(
+          fontSize: 12,
+          color: Colors.white54,
+          shadows: AppTheme.textShadows,
+        ),
       ),
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -383,12 +470,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 15,
+                  shadows: AppTheme.textShadows,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 13, color: Colors.white70),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.white70,
+                  shadows: AppTheme.textShadows,
+                ),
               ),
             ],
           ),

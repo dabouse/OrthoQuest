@@ -50,31 +50,49 @@ class HistoryCard extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: Column(
                     children: [
-                      Container(
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.1),
-                          ),
-                        ),
-                        alignment: Alignment.bottomCenter,
-                        child: FractionallySizedBox(
-                          heightFactor: percentage == 0 ? 0.05 : percentage,
-                          child: Container(
+                      Stack(
+                        children: [
+                          Container(
+                            height: 60,
                             decoration: BoxDecoration(
-                              color: barColor,
+                              color: Colors.white.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: barColor.withValues(alpha: 0.4),
-                                  blurRadius: 8,
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            alignment: Alignment.bottomCenter,
+                            child: FractionallySizedBox(
+                              heightFactor: percentage == 0 ? 0.05 : percentage,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: barColor,
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: barColor.withValues(alpha: 0.4),
+                                      blurRadius: 8,
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
-                        ),
+                          Positioned.fill(
+                            child: Center(
+                              child: Text(
+                                "${(minutes / 60).round()}h",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppTheme.primaryColor,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                  shadows: AppTheme.textShadows,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -83,15 +101,6 @@ class HistoryCard extends ConsumerWidget {
                           fontSize: 10,
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          shadows: AppTheme.textShadows,
-                        ),
-                      ),
-                      Text(
-                        "${(minutes / 60).toStringAsFixed(1)}h",
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
                           shadows: AppTheme.textShadows,
                         ),
                       ),

@@ -10,6 +10,7 @@ import '../../utils/app_theme.dart';
 import '../../models/session.dart';
 import '../../utils/session_utils.dart';
 import '../../utils/date_utils.dart';
+import '../widgets/vibrant_card.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -137,7 +138,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Statistiques"),
+        title: Text(
+          "Statistiques",
+          style: (Theme.of(context).appBarTheme.titleTextStyle ??
+                  const TextStyle(fontWeight: FontWeight.bold, color: Colors.white))
+              .copyWith(shadows: AppTheme.textShadows),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
@@ -165,29 +171,69 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     children: [
                       // View Mode Selector
                       SegmentedButton<ReportViewMode>(
-                        style: SegmentedButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.05),
-                          selectedBackgroundColor: AppTheme.primaryColor
-                              .withValues(alpha: 0.2),
-                          selectedForegroundColor: AppTheme.primaryColor,
-                          foregroundColor: Colors.white70,
-                          side: BorderSide(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                        style: ButtonStyle(
+                          backgroundColor:
+                              WidgetStateProperty.resolveWith<Color>((states) {
+                                if (states.contains(WidgetState.selected)) {
+                                  return AppTheme.primaryColor.withValues(
+                                    alpha: 0.7,
+                                  ); // Encore plus opaque
+                                }
+                                return Colors.white.withValues(
+                                  alpha: 0.4,
+                                ); // Encore plus opaque
+                              }),
+                          foregroundColor:
+                              WidgetStateProperty.resolveWith<Color>((states) {
+                                if (states.contains(WidgetState.selected)) {
+                                  return AppTheme.primaryColor;
+                                }
+                                return Colors.white;
+                              }),
+                          textStyle: WidgetStateProperty.all(
+                            const TextStyle(
+                              shadows: AppTheme.textShadows,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          iconColor: WidgetStateProperty.all(Colors.white),
+                          side: WidgetStateProperty.all(
+                            BorderSide(
+                              color: AppTheme.primaryColor.withValues(
+                                alpha: 0.8,
+                              ),
+                              width: 1.5,
+                            ),
+                          ),
+                          shape: WidgetStateProperty.all(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          elevation: WidgetStateProperty.all(
+                            5,
+                          ), // Ajout d'une petite élévation/ombre
+                          shadowColor: WidgetStateProperty.all(
+                            Colors.black.withValues(alpha: 0.5),
                           ),
                         ),
-                        segments: const [
+                        showSelectedIcon: false,
+                        segments: [
                           ButtonSegment(
                             value: ReportViewMode.week,
-                            label: Text("Semaine"),
-                            icon: Icon(Icons.view_week),
+                            label: const Text("Semaine"),
+                            icon: const Icon(
+                              Icons.date_range,
+                              shadows: AppTheme.textShadows,
+                            ),
                           ),
                           ButtonSegment(
                             value: ReportViewMode.month,
                             label: Text("Mois"),
-                            icon: Icon(Icons.calendar_month),
+                            icon: Icon(
+                              Icons.calendar_month,
+                              shadows: AppTheme.textShadows,
+                            ),
                           ),
                         ],
                         selected: {_viewMode},
@@ -205,345 +251,460 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          IconButton(
-                            icon: const Icon(Icons.chevron_left),
-                            onPressed: () => _navigate(-1),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.chevron_left,
+                                color: Colors.white,
+                              ),
+                              onPressed: () => _navigate(-1),
+                            ),
                           ),
                           Text(
                             periodLabel,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
+                              color: Colors.white,
+                              shadows: AppTheme.textShadows,
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.chevron_right),
-                            onPressed: () => _navigate(1),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.chevron_right,
+                                color: Colors.white,
+                              ),
+                              onPressed: () => _navigate(1),
+                            ),
                           ),
                         ],
                       ),
 
                       const SizedBox(height: 16),
 
-                      // Summary Cards
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildSummaryCard(
-                            "Moyenne",
-                            "${(avgMinutes / 60).toStringAsFixed(1)}h",
-                          ),
-                          _buildSummaryCard(
-                            _viewMode == ReportViewMode.week
-                                ? "Total 7j"
-                                : "Total Mois",
-                            "${(totalMinutes / 60).toStringAsFixed(1)}h",
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 30),
-
-                      // Chart area with zoom support
+                      // Main Stats block
                       Expanded(
-                        child: InteractiveViewer(
-                          panEnabled: true,
-                          scaleEnabled: true,
-                          minScale: 1.0,
-                          maxScale: 5.0,
-                          child: BarChart(
-                            BarChartData(
-                              alignment: BarChartAlignment.spaceAround,
-                              maxY: chartMaxY,
-                              extraLinesData: ExtraLinesData(
-                                horizontalLines: [
-                                  HorizontalLine(
-                                    y: targetMins.toDouble(),
-                                    color: Colors.green.withValues(alpha: 0.6),
-                                    strokeWidth: 2,
-                                    dashArray: [5, 5],
-                                    label: HorizontalLineLabel(
-                                      show: true,
-                                      alignment: Alignment.topRight,
-                                      padding: const EdgeInsets.only(
-                                        right: 5,
-                                        bottom:
-                                            12, // Augmenté pour monter le texte au-dessus de la ligne
-                                      ),
-                                      style: const TextStyle(
-                                        color: Colors.green,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      labelResolver: (line) => 'Objectif',
-                                    ),
+                        child: VibrantCard(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              // Summary Cards inside the main card
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _buildSummaryCard(
+                                    "Moyenne",
+                                    "${(avgMinutes / 60).toStringAsFixed(1)}h",
+                                  ),
+                                  _buildSummaryCard(
+                                    _viewMode == ReportViewMode.week
+                                        ? "7 jours"
+                                        : "Mois",
+                                    "${(totalMinutes / 60).toStringAsFixed(1)}h",
                                   ),
                                 ],
                               ),
-                              barTouchData: BarTouchData(
-                                enabled: true,
-                                handleBuiltInTouches: false,
-                                touchCallback: (FlTouchEvent event, barResponse) {
-                                  if (event is! FlTapUpEvent ||
-                                      barResponse == null ||
-                                      barResponse.spot == null) {
-                                    return;
-                                  }
-                                  setState(() {
-                                    final index =
-                                        barResponse.spot!.touchedBarGroupIndex;
+                              const SizedBox(height: 20),
 
-                                    final date = startOfPeriod.add(
-                                      Duration(days: index),
-                                    );
+                              // Chart
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.55,
+                                          ),
+                                          blurRadius: 16,
+                                          offset: const Offset(0, 6),
+                                          spreadRadius: 0,
+                                        ),
+                                        BoxShadow(
+                                          color: AppTheme.primaryColor
+                                              .withValues(alpha: 0.15),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 3),
+                                          spreadRadius: 0,
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: InteractiveViewer(
+                                      panEnabled: true,
+                                      scaleEnabled: true,
+                                      minScale: 1.0,
+                                      maxScale: 5.0,
+                                      child: BarChart(
+                                    BarChartData(
+                                      alignment: BarChartAlignment.spaceAround,
+                                      maxY: chartMaxY,
+                                      extraLinesData: ExtraLinesData(
+                                        horizontalLines: [
+                                          HorizontalLine(
+                                            y: targetMins.toDouble(),
+                                            color: Colors.black,
+                                            strokeWidth: 1.5,
+                                            label: HorizontalLineLabel(
+                                              show: false,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      barTouchData: BarTouchData(
+                                        enabled: true,
+                                        handleBuiltInTouches: false,
+                                        touchCallback:
+                                            (FlTouchEvent event, barResponse) {
+                                              if (event is! FlTapUpEvent ||
+                                                  barResponse == null ||
+                                                  barResponse.spot == null) {
+                                                return;
+                                              }
+                                              setState(() {
+                                                final index = barResponse
+                                                    .spot!
+                                                    .touchedBarGroupIndex;
 
-                                    final targetDate = DateTime(
-                                      date.year,
-                                      date.month,
-                                      date.day,
-                                    );
+                                                final date = startOfPeriod.add(
+                                                  Duration(days: index),
+                                                );
 
-                                    if (_selectedDate != null &&
-                                        DateUtils.isSameDay(
-                                          _selectedDate!,
-                                          targetDate,
-                                        )) {
-                                      // Si on reclique sur le même jour, on tout déselectionne
-                                      _selectedDate = null;
-                                      _selectedSessionId = null;
-                                    } else {
-                                      // Sinon on sélectionne le jour
-                                      _selectedDate = targetDate;
-                                      _selectedSessionId = null;
-                                    }
-                                  });
-                                },
-                              ),
-                              titlesData: FlTitlesData(
-                                show: true,
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    getTitlesWidget:
-                                        (double value, TitleMeta meta) {
-                                          final index = value.toInt();
-                                          if (index < 0 ||
-                                              index >= daysInPeriod) {
-                                            return const SizedBox.shrink();
-                                          }
+                                                final targetDate = DateTime(
+                                                  date.year,
+                                                  date.month,
+                                                  date.day,
+                                                );
 
-                                          final date = startOfPeriod.add(
-                                            Duration(days: index),
-                                          );
-                                          final today = DateTime.now();
-                                          final isToday = DateUtils.isSameDay(
-                                            date,
-                                            today,
-                                          );
-                                          // For Month view, rotate labels to fit everyone
-                                          if (_viewMode ==
-                                              ReportViewMode.month) {
-                                            return Padding(
-                                              padding: const EdgeInsets.only(
-                                                top: 12.0,
-                                              ),
-                                              child: Transform.rotate(
-                                                angle: -1.5708, // 90 degrés
-                                                child: Text(
-                                                  "${date.day}",
-                                                  style: TextStyle(
-                                                    fontSize: 9,
-                                                    fontWeight:
-                                                        FontWeight.normal,
-                                                    color: isToday
-                                                        ? AppTheme.primaryColor
-                                                        : Colors.white60,
+                                                if (_selectedDate != null &&
+                                                    DateUtils.isSameDay(
+                                                      _selectedDate!,
+                                                      targetDate,
+                                                    )) {
+                                                  _selectedDate = null;
+                                                  _selectedSessionId = null;
+                                                } else {
+                                                  _selectedDate = targetDate;
+                                                  _selectedSessionId = null;
+                                                }
+                                              });
+                                            },
+                                      ),
+                                      titlesData: FlTitlesData(
+                                        show: true,
+                                        bottomTitles: AxisTitles(
+                                          sideTitles: SideTitles(
+                                            showTitles: true,
+                                            getTitlesWidget:
+                                                (double value, TitleMeta meta) {
+                                                  final index = value.toInt();
+                                                  if (index < 0 ||
+                                                      index >= daysInPeriod) {
+                                                    return const SizedBox.shrink();
+                                                  }
+
+                                                  final date = startOfPeriod
+                                                      .add(
+                                                        Duration(days: index),
+                                                      );
+                                                  final today = DateTime.now();
+                                                  final isToday =
+                                                      DateUtils.isSameDay(
+                                                        date,
+                                                        today,
+                                                      );
+                                                  if (_viewMode ==
+                                                      ReportViewMode.month) {
+                                                    return Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                            top: 12.0,
+                                                          ),
+                                                      child: Transform.rotate(
+                                                        angle: -1.5708,
+                                                        child: Text(
+                                                          "${date.day}",
+                                                          style: TextStyle(
+                                                            fontSize: 9,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .normal,
+                                                            color: isToday
+                                                                ? AppTheme
+                                                                      .primaryColor
+                                                                : Colors.white,
+                                                            shadows: AppTheme
+                                                                .textShadows,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }
+
+                                                  return Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: 8.0,
+                                                        ),
+                                                    child: Text(
+                                                      DateFormat(
+                                                        'E',
+                                                        'fr_FR',
+                                                      ).format(date),
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.normal,
+                                                        color: isToday
+                                                            ? AppTheme
+                                                                  .primaryColor
+                                                            : Colors.white,
+                                                        shadows: AppTheme
+                                                            .textShadows,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                          ),
+                                        ),
+                                        leftTitles: AxisTitles(
+                                          sideTitles: SideTitles(
+                                            showTitles: true,
+                                            reservedSize: 45,
+                                            interval: chartMaxY > 600
+                                                ? 120
+                                                : 60,
+                                            getTitlesWidget: (value, meta) {
+                                              if (value == meta.max &&
+                                                  value %
+                                                          (chartMaxY > 600
+                                                              ? 120
+                                                              : 60) !=
+                                                      0) {
+                                                return const SizedBox.shrink();
+                                              }
+
+                                              if (value %
+                                                      (chartMaxY > 600
+                                                          ? 120
+                                                          : 60) ==
+                                                  0) {
+                                                return Text(
+                                                  '${(value / 60).toInt()}h',
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors.white,
+                                                    shadows:
+                                                        AppTheme.textShadows,
                                                   ),
-                                                ),
+                                                );
+                                              }
+                                              return const SizedBox.shrink();
+                                            },
+                                          ),
+                                        ),
+                                        topTitles: const AxisTitles(
+                                          sideTitles: SideTitles(
+                                            showTitles: false,
+                                          ),
+                                        ),
+                                        rightTitles: const AxisTitles(
+                                          sideTitles: SideTitles(
+                                            showTitles: false,
+                                          ),
+                                        ),
+                                      ),
+                                      gridData: FlGridData(
+                                        show: true,
+                                        drawVerticalLine: false,
+                                        horizontalInterval: chartMaxY > 600
+                                            ? 120
+                                            : 60,
+                                        getDrawingHorizontalLine: (value) =>
+                                            FlLine(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.08,
                                               ),
+                                              strokeWidth: 1,
+                                            ),
+                                      ),
+                                      borderData: FlBorderData(
+                                        show: true,
+                                        border: Border(
+                                          bottom: BorderSide(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            width: 1,
+                                          ),
+                                          left: BorderSide(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            width: 1,
+                                          ),
+                                        ),
+                                      ),
+                                      barGroups: List.generate(daysInPeriod, (
+                                        index,
+                                      ) {
+                                        final date = startOfPeriod.add(
+                                          Duration(days: index),
+                                        );
+                                        final normalizedDate = DateTime(
+                                          date.year,
+                                          date.month,
+                                          date.day,
+                                        );
+
+                                        final daySessions = _allSessions.where((
+                                          s,
+                                        ) {
+                                          if (s.endTime == null) {
+                                            return false;
+                                          }
+                                          return DateUtils.isSameDay(
+                                            OrthoDateUtils.getReportingDate(
+                                              s.startTime,
+                                            ),
+                                            normalizedDate,
+                                          );
+                                        }).toList();
+                                        daySessions.sort(
+                                          (a, b) => a.startTime.compareTo(
+                                            b.startTime,
+                                          ),
+                                        );
+
+                                        List<BarChartRodStackItem> stackItems =
+                                            [];
+                                        double currentY = 0;
+
+                                        for (var s in daySessions) {
+                                          final dur = s.durationInMinutes
+                                              .toDouble();
+                                          final stickerId = s.stickerId;
+                                          final isSelected =
+                                              s.id == _selectedSessionId;
+                                          Color color =
+                                              (stickerId != null &&
+                                                  SessionUtils.stickers
+                                                      .containsKey(stickerId))
+                                              ? SessionUtils
+                                                        .stickers[stickerId]!['color']
+                                                    as Color
+                                              : AppTheme.primaryColor
+                                                    .withValues(alpha: 0.5);
+
+                                          if (_selectedSessionId != null &&
+                                              !isSelected) {
+                                            color = color.withValues(
+                                              alpha: 0.2,
                                             );
                                           }
 
-                                          return Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 8.0,
-                                            ),
-                                            child: Text(
-                                              DateFormat(
-                                                'E',
-                                                'fr_FR',
-                                              ).format(date),
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.normal,
-                                                color: isToday
-                                                    ? AppTheme.primaryColor
-                                                    : Colors.white60,
-                                              ),
+                                          stackItems.add(
+                                            BarChartRodStackItem(
+                                              currentY,
+                                              currentY + dur,
+                                              color,
                                             ),
                                           );
-                                        },
-                                  ),
-                                ),
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 45,
-                                    interval: chartMaxY > 600 ? 120 : 60,
-                                    getTitlesWidget: (value, meta) {
-                                      // Empêche d'afficher le titre max s'il est trop proche d'une graduation régulière
-                                      if (value == meta.max &&
-                                          value %
-                                                  (chartMaxY > 600
-                                                      ? 120
-                                                      : 60) !=
-                                              0) {
-                                        return const SizedBox.shrink();
-                                      }
+                                          currentY += dur;
+                                        }
 
-                                      if (value %
-                                              (chartMaxY > 600 ? 120 : 60) ==
-                                          0) {
-                                        return Text(
-                                          '${(value / 60).toInt()}h',
-                                          style: const TextStyle(fontSize: 10),
-                                        );
-                                      }
-                                      return const SizedBox.shrink();
-                                    },
-                                  ),
-                                ),
-                                topTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                rightTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                              ),
-                              gridData: FlGridData(
-                                show: true,
-                                drawVerticalLine: false,
-                                horizontalInterval: chartMaxY > 600 ? 120 : 60,
-                                getDrawingHorizontalLine: (value) => FlLine(
-                                  color: Colors.white.withValues(alpha: 0.08),
-                                  strokeWidth: 1,
-                                ),
-                              ),
-                              borderData: FlBorderData(
-                                show: true,
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Colors.white.withValues(alpha: 0.15),
-                                    width: 1,
-                                  ),
-                                  left: BorderSide(
-                                    color: Colors.white.withValues(alpha: 0.15),
-                                    width: 1,
-                                  ),
-                                ),
-                              ),
-                              barGroups: List.generate(daysInPeriod, (index) {
-                                final date = startOfPeriod.add(
-                                  Duration(days: index),
-                                );
-                                final normalizedDate = DateTime(
-                                  date.year,
-                                  date.month,
-                                  date.day,
-                                );
-
-                                // Récupérer et trier les sessions de ce jour
-                                final daySessions = _allSessions.where((s) {
-                                  if (s.endTime == null) return false;
-                                  return DateUtils.isSameDay(
-                                    OrthoDateUtils.getReportingDate(
-                                      s.startTime,
-                                    ),
-                                    normalizedDate,
-                                  );
-                                }).toList();
-                                daySessions.sort(
-                                  (a, b) => a.startTime.compareTo(b.startTime),
-                                );
-
-                                List<BarChartRodStackItem> stackItems = [];
-                                double currentY = 0;
-
-                                for (var s in daySessions) {
-                                  final dur = s.durationInMinutes.toDouble();
-                                  final stickerId = s.stickerId;
-                                  final isSelected = s.id == _selectedSessionId;
-                                  Color color =
-                                      (stickerId != null &&
-                                          SessionUtils.stickers.containsKey(
-                                            stickerId,
-                                          ))
-                                      ? SessionUtils
-                                                .stickers[stickerId]!['color']
-                                            as Color
-                                      : AppTheme.primaryColor.withValues(
-                                          alpha: 0.5,
+                                        final today = DateTime.now();
+                                        final isToday = DateUtils.isSameDay(
+                                          normalizedDate,
+                                          today,
                                         );
 
-                                  if (_selectedSessionId != null &&
-                                      !isSelected) {
-                                    color = color.withValues(alpha: 0.2);
-                                  }
+                                        final isSelectedDay =
+                                            _selectedDate != null &&
+                                            DateUtils.isSameDay(
+                                              normalizedDate,
+                                              _selectedDate!,
+                                            );
 
-                                  stackItems.add(
-                                    BarChartRodStackItem(
-                                      currentY,
-                                      currentY + dur,
-                                      color,
-                                    ),
-                                  );
-                                  currentY += dur;
-                                }
-
-                                final today = DateTime.now();
-                                final isToday = DateUtils.isSameDay(
-                                  normalizedDate,
-                                  today,
-                                );
-
-                                return BarChartGroupData(
-                                  x: index,
-                                  barRods: [
-                                    BarChartRodData(
-                                      toY: currentY,
-                                      rodStackItems: stackItems,
-                                      width: _viewMode == ReportViewMode.week
-                                          ? 22
-                                          : 8,
-                                      borderRadius: BorderRadius.circular(4),
-                                      borderSide: isToday
-                                          ? const BorderSide(
-                                              color: Colors.white,
-                                              width: 1.5,
-                                            )
-                                          : const BorderSide(
-                                              color: Colors.transparent,
-                                              width: 0,
+                                        return BarChartGroupData(
+                                          x: index,
+                                          barRods: [
+                                            BarChartRodData(
+                                              toY: currentY,
+                                              rodStackItems: stackItems,
+                                              width:
+                                                  _viewMode ==
+                                                      ReportViewMode.week
+                                                  ? 22
+                                                  : 8,
+                                              backDrawRodData:
+                                                  BackgroundBarChartRodData(
+                                                    show: true,
+                                                    toY: targetMins.toDouble(),
+                                                    color: AppTheme
+                                                        .secondaryColor
+                                                        .withValues(
+                                                          alpha: 0.15,
+                                                        ),
+                                                  ),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              borderSide: isSelectedDay
+                                                  ? const BorderSide(
+                                                      color: Colors.white,
+                                                      width: 2,
+                                                    )
+                                                  : (isToday
+                                                        ? const BorderSide(
+                                                            color: Colors.blue,
+                                                            width: 2,
+                                                          )
+                                                        : BorderSide.none),
+                                              color: isToday
+                                                  ? AppTheme.primaryColor
+                                                        .withValues(alpha: 0.1)
+                                                  : Colors.white.withValues(
+                                                      alpha: 0.05,
+                                                    ),
                                             ),
-                                      color: isToday
-                                          ? AppTheme.primaryColor.withValues(
-                                              alpha: 0.1,
-                                            )
-                                          : Colors.white.withValues(
-                                              alpha: 0.05,
-                                            ),
+                                          ],
+                                          showingTooltipIndicators: const [],
+                                        );
+                                      }),
                                     ),
-                                  ],
-                                  showingTooltipIndicators: const [],
-                                );
-                              }),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
+                      const SizedBox(height: 10),
+                              // Stickers Timeline inside the card
+                              _buildStickersTimeline(
+                                startOfPeriod,
+                                daysInPeriod,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 20),
-                      // Stickers Timeline
-                      _buildStickersTimeline(startOfPeriod, daysInPeriod),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                     ],
                   ),
                 ),
@@ -594,49 +755,50 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _selectedDate != null
-                        ? "Journée du ${DateFormat('dd MMMM', 'fr_FR').format(_selectedDate!)}"
-                        : "Toutes les sessions",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (_selectedDate != null)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      "${(_allStats[_selectedDate!] ?? 0) ~/ 60}h ${(_allStats[_selectedDate!] ?? 0) % 60}min au total",
-                      style: TextStyle(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.8),
-                        fontSize: 12,
+                      _selectedDate != null
+                          ? "Journée du ${DateFormat('dd MMMM', 'fr_FR').format(_selectedDate!)}"
+                          : "Toutes les sessions",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        shadows: AppTheme.textShadows,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                ],
+                    if (_selectedDate != null)
+                      Text(
+                        "${(_allStats[_selectedDate!] ?? 0) ~/ 60}h ${(_allStats[_selectedDate!] ?? 0) % 60}min au total",
+                        style: TextStyle(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.8),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          shadows: AppTheme.textShadows,
+                        ),
+                      ),
+                  ],
+                ),
               ),
               if (_selectedDate != null)
-                TextButton.icon(
+                IconButton(
                   onPressed: () {
                     setState(() {
                       _selectedDate = null;
                       _selectedSessionId = null;
                     });
                   },
-                  icon: const Icon(Icons.close, size: 16),
-                  label: const Text("Voir tout"),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.primaryColor,
+                  icon: const Icon(Icons.close, size: 20),
+                  style: IconButton.styleFrom(
+                    foregroundColor: Colors.white,
                     backgroundColor: AppTheme.primaryColor.withValues(
-                      alpha: 0.1,
+                      alpha: 0.3,
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    padding: const EdgeInsets.all(8),
                   ),
                 ),
             ],
@@ -657,12 +819,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               final data = SessionUtils.stickers[stickerId]!;
 
               final isSelected = session.id == _selectedSessionId;
-              final isFromSelectedDay =
-                  _selectedDate != null &&
-                  DateUtils.isSameDay(
-                    OrthoDateUtils.getReportingDate(session.startTime),
-                    _selectedDate!,
-                  );
 
               return GestureDetector(
                 onTap: () {
@@ -704,17 +860,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             color: data['color'] as Color,
                             width: isSelected ? 3 : 2,
                           ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: (data['color'] as Color).withValues(
-                                      alpha: 0.6,
-                                    ),
-                                    blurRadius: 15,
-                                    spreadRadius: 2,
-                                  ),
-                                ]
-                              : null,
+                          boxShadow: [
+                            BoxShadow(
+                              color: (data['color'] as Color).withValues(
+                                alpha: isSelected ? 0.6 : 0.3,
+                              ),
+                              blurRadius: isSelected ? 15 : 8,
+                              spreadRadius: isSelected ? 2 : 1,
+                            ),
+                          ],
                         ),
                         child: Icon(
                           data['icon'] as IconData,
@@ -727,13 +881,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         "${DateFormat('dd/MM').format(session.startTime)}\n${DateFormat('HH:mm').format(session.startTime)}",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: isSelected || isFromSelectedDay
-                              ? Colors.white
-                              : Colors.white60,
+                          color: Colors.white,
                           fontSize: 9,
                           fontWeight: isSelected
                               ? FontWeight.bold
                               : FontWeight.normal,
+                          shadows: AppTheme.textShadows,
                         ),
                       ),
                     ],
@@ -748,33 +901,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildSummaryCard(String title, String value) {
-    return Container(
+    return SizedBox(
       width: 150,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.2),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
       child: Column(
         children: [
           Text(
             title,
             style: const TextStyle(
-              color: Colors.white70,
+              color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.w500,
               letterSpacing: 0.5,
+              shadows: AppTheme.textShadows,
             ),
           ),
           const SizedBox(height: 10),
@@ -783,9 +921,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: AppTheme.primaryColor,
+              color: Colors.white,
               fontFamily: 'Orbitron',
               letterSpacing: 1,
+              shadows: AppTheme.textShadows,
             ),
           ),
         ],

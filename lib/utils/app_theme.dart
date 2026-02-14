@@ -15,7 +15,16 @@ class AppTheme {
   static const Color errorColor = Color(0xFFFF3131); // Neon Red
 
   static const List<Shadow> textShadows = [
-    Shadow(color: Colors.black, offset: Offset(0, 1), blurRadius: 3),
+    Shadow(
+      color: Colors.black, // Noir pur plus opaque par défaut
+      offset: Offset(0, 1),
+      blurRadius: 4, // Un peu plus diffus
+    ),
+    Shadow(
+      color: Colors.black87, // Deuxième couche pour renforcer
+      offset: Offset(0, 2),
+      blurRadius: 6,
+    ),
   ];
 
   // Rich Premium Gradients
@@ -234,6 +243,7 @@ class AppBackground extends ConsumerWidget {
     final gradient =
         AppTheme.themes[activeTheme] ?? AppTheme.backgroundGradient;
     final imagePath = AppTheme.themeImagePaths[activeTheme];
+    debugPrint('[AppBackground] theme=$activeTheme, imagePath=$imagePath');
 
     return Scaffold(
       body: Stack(

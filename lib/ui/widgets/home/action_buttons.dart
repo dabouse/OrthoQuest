@@ -43,20 +43,28 @@ class ActionButtons extends ConsumerWidget {
                   width: 75,
                   height: 75,
                   decoration: BoxDecoration(
-                    color: isRunning
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : AppTheme.primaryColor.withValues(alpha: 0.2),
+                    gradient: isRunning
+                        ? null
+                        : LinearGradient(
+                            colors: [
+                              AppTheme.primaryColor,
+                              AppTheme.primaryColor.withValues(alpha: 0.7),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                    color: isRunning ? Colors.white.withValues(alpha: 0.05) : null,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isRunning ? Colors.white24 : AppTheme.primaryColor,
-                      width: 2,
+                      color: isRunning ? Colors.white24 : Colors.white,
+                      width: isRunning ? 2 : 2.5,
                     ),
                     boxShadow: [
                       if (!isRunning)
                         BoxShadow(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
+                          color: AppTheme.primaryColor.withValues(alpha: 0.6),
+                          blurRadius: 25,
+                          spreadRadius: 2,
                         ),
                     ],
                   ),
@@ -202,17 +210,24 @@ class ActionButtons extends ConsumerWidget {
                   width: 75,
                   height: 75,
                   decoration: BoxDecoration(
-                    color: AppTheme.secondaryColor.withValues(alpha: 0.2),
+                    gradient: LinearGradient(
+                      colors: [
+                        AppTheme.secondaryColor,
+                        AppTheme.secondaryColor.withValues(alpha: 0.7),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppTheme.secondaryColor,
-                      width: 2,
+                      color: Colors.white,
+                      width: 2.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.secondaryColor.withValues(alpha: 0.3),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
+                        color: AppTheme.secondaryColor.withValues(alpha: 0.6),
+                        blurRadius: 25,
+                        spreadRadius: 2,
                       ),
                     ],
                   ),

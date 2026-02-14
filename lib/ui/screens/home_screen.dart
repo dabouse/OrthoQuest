@@ -110,7 +110,7 @@ class HomeScreen extends ConsumerWidget {
         leadingWidth: 85,
         actions: [
           IconButton(
-            icon: const Icon(Icons.bar_chart),
+            icon: Icon(Icons.bar_chart, shadows: AppTheme.textShadows),
             onPressed: () {
               Navigator.push(
                 context,
@@ -119,7 +119,7 @@ class HomeScreen extends ConsumerWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: Icon(Icons.settings, shadows: AppTheme.textShadows),
             onPressed: () {
               Navigator.push(
                 context,

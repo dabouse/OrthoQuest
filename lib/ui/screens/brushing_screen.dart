@@ -9,6 +9,7 @@ import '../../services/database_service.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/brushing_provider.dart';
 import '../../utils/app_theme.dart';
+import '../widgets/vibrant_card.dart';
 
 class BrushingScreen extends ConsumerStatefulWidget {
   const BrushingScreen({super.key});
@@ -38,7 +39,7 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
 
   Future<void> _loadSettings() async {
     final val = await DatabaseService().getSetting('brushing_duration');
-    final durationSec = int.tryParse(val ?? '120') ?? 120;
+    final durationSec = int.tryParse(val ?? '300') ?? 300;
     // Only set duration if timer is not currently running to avoid resetting active session
     final currentState = ref.read(brushingProvider);
     if (!currentState.isRunning) {
@@ -107,6 +108,7 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
+                    shadows: AppTheme.textShadows,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -131,24 +133,23 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
                   ),
                 ),
                 const SizedBox(height: 5), // Reduced from 20
-                Text(
+                const Text(
                   "+50 XP",
                   style: TextStyle(
                     fontSize: 42,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.accentColor,
-                    shadows: [
-                      Shadow(
-                        color: AppTheme.accentColor.withValues(alpha: 0.6),
-                        blurRadius: 15,
-                      ),
-                    ],
+                    color: Colors.white,
+                    shadows: AppTheme.textShadows,
                   ),
                 ),
                 const SizedBox(height: 5),
                 Text(
                   "Série en cours : ${userState.streak} jours 🔥",
-                  style: const TextStyle(fontSize: 16, color: Colors.white70),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                    shadows: AppTheme.textShadows,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -185,12 +186,58 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
     }
   }
 
+  Widget _buildControlButton({
+    required VoidCallback onTap,
+    required IconData icon,
+    required Color color,
+    required double size,
+    bool isPrimary = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: isPrimary
+              ? color.withValues(alpha: 0.85)
+              : color.withValues(alpha: 0.2),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: color,
+            width: isPrimary ? 2.5 : 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: isPrimary ? 0.5 : 0.25),
+              blurRadius: isPrimary ? 20 : 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          color: Colors.white,
+          size: isPrimary ? 40 : 26,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final brushingState = ref.watch(brushingProvider);
     final secondsRemaining = brushingState.remaining.inSeconds;
     final totalDuration = brushingState.total.inSeconds;
     final isRunning = brushingState.isRunning;
+
+    // Debug: vérifier les dimensions disponibles
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final size = MediaQuery.sizeOf(context);
+        debugPrint('[BrushingScreen] Build - size: ${size.width}x${size.height}');
+      }
+    });
 
     // Listen for completion
     ref.listen(brushingProvider, (previous, next) {
@@ -202,13 +249,46 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
       }
     });
 
+    final userState = ref.watch(userProvider);
+    final activeTheme = userState.activeTheme;
+    final gradient =
+        AppTheme.themes[activeTheme] ?? AppTheme.backgroundGradient;
+    final imagePath = AppTheme.themeImagePaths[activeTheme];
+    debugPrint(
+      '[BrushingScreen] activeTheme=$activeTheme, imagePath=$imagePath',
+    );
+
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text("Brossage")),
-      body: AppBackground(
-        child: SafeArea(
-          child: Stack(
-            alignment: Alignment.center,
+      appBar: AppBar(
+        title: const Text(
+          "Brossage",
+          style: TextStyle(
+            color: Colors.white,
+            shadows: AppTheme.textShadows,
+          ),
+        ),
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          debugPrint(
+            '[BrushingScreen] LayoutBuilder - constraints: '
+            '${constraints.maxWidth}x${constraints.maxHeight}',
+          );
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              // Fond (évite le double Scaffold de AppBackground)
+              Positioned.fill(
+                child: imagePath != null
+                    ? Image.asset(imagePath, fit: BoxFit.cover)
+                    : Container(
+                        decoration: BoxDecoration(gradient: gradient),
+                      ),
+              ),
+              // Contenu
+              SafeArea(
+                child: Stack(
             children: [
               ConfettiWidget(
                 confettiController: _confettiController,
@@ -222,177 +302,251 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
                   Colors.purple,
                 ],
               ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
-                    clipBehavior: Clip.none,
-                    children: [
-                      // Tooth Emoji
-                      const Text('🦷', style: TextStyle(fontSize: 100)),
-                      // Foam / Bubbles Animation
-                      if (isRunning) ...[
-                        Positioned(
-                          top: -10,
-                          left: 20,
-                          child: ScaleTransition(
-                            scale: Tween(begin: 0.6, end: 1.2).animate(
-                              CurvedAnimation(
-                                parent: _brushingController,
-                                curve: Curves.easeInOut,
+              // Contenu principal
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  child: SingleChildScrollView(
+                    child: VibrantCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 28,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                              // Animation section
+                              Stack(
+                                alignment: Alignment.center,
+                                clipBehavior: Clip.none,
+                                children: [
+                                  const Text(
+                                    '🦷',
+                                    style: TextStyle(fontSize: 110),
+                                  ),
+                                  if (isRunning) ...[
+                                    Positioned(
+                                      top: -10,
+                                      left: 20,
+                                      child: ScaleTransition(
+                                        scale: Tween(begin: 0.6, end: 1.2).animate(
+                                          CurvedAnimation(
+                                            parent: _brushingController,
+                                            curve: Curves.easeInOut,
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          '🫧',
+                                          style: TextStyle(fontSize: 26),
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 12,
+                                      right: 16,
+                                      child: FadeTransition(
+                                        opacity: _brushingController,
+                                        child: const Text(
+                                          '🫧',
+                                          style: TextStyle(fontSize: 22),
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      bottom: 16,
+                                      left: 12,
+                                      child: ScaleTransition(
+                                        scale: Tween(begin: 0.8, end: 0.4).animate(
+                                          CurvedAnimation(
+                                            parent: _brushingController,
+                                            curve: Curves.elasticIn,
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          '🫧',
+                                          style: TextStyle(fontSize: 18),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  if (isRunning)
+                                    AnimatedBuilder(
+                                      animation: _brushingController,
+                                      builder: (context, child) {
+                                        return Transform.translate(
+                                          offset: Offset(
+                                            20.0 *
+                                                (0.5 - _brushingController.value),
+                                            0,
+                                          ),
+                                          child: Transform.rotate(
+                                            angle: -0.2 +
+                                                (0.4 * _brushingController.value),
+                                            child: const Text(
+                                              '🪥',
+                                              style: TextStyle(fontSize: 84),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  else
+                                    Transform.translate(
+                                      offset: const Offset(20, 12),
+                                      child: Transform.rotate(
+                                        angle: -0.5,
+                                        child: const Text(
+                                          '🪥',
+                                          style: TextStyle(fontSize: 84),
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
-                            ),
-                            child: const Text(
-                              '🫧',
-                              style: TextStyle(fontSize: 24),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 10,
-                          right: 15,
-                          child: FadeTransition(
-                            opacity: _brushingController,
-                            child: const Text(
-                              '🫧',
-                              style: TextStyle(fontSize: 20),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 15,
-                          left: 10,
-                          child: ScaleTransition(
-                            scale: Tween(begin: 0.8, end: 0.4).animate(
-                              CurvedAnimation(
-                                parent: _brushingController,
-                                curve: Curves.elasticIn,
+                              const SizedBox(height: 24),
+                              // Timer (avec bordures comme la page d'accueil)
+                              Stack(
+                                clipBehavior: Clip.none,
+                                alignment: Alignment.center,
+                                children: [
+                                  CircularPercentIndicator(
+                                    radius: 120.0,
+                                    lineWidth: 20.0,
+                                    percent: (1.0 -
+                                            (secondsRemaining /
+                                                (totalDuration == 0
+                                                    ? 1
+                                                    : totalDuration)))
+                                        .clamp(0.0, 1.0),
+                                    center: Text(
+                                      "${(secondsRemaining ~/ 60).toString().padLeft(2, '0')}:${(secondsRemaining % 60).toString().padLeft(2, '0')}",
+                                      style: const TextStyle(
+                                        fontSize: 44,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        shadows: AppTheme.textShadows,
+                                      ),
+                                    ),
+                                    progressColor: AppTheme.primaryColor,
+                                    backgroundColor:
+                                        AppTheme.primaryColor.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                    circularStrokeCap: CircularStrokeCap.round,
+                                  ),
+                                  // Bordure extérieure (240 = 2×radius)
+                                  Positioned(
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    child: Center(
+                                      child: IgnorePointer(
+                                        child: SizedBox(
+                                          width: 240,
+                                          height: 240,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.8,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  // Bordure intérieure
+                                  Positioned(
+                                    top: 20,
+                                    left: 0,
+                                    right: 0,
+                                    child: Center(
+                                      child: IgnorePointer(
+                                        child: SizedBox(
+                                          width: 200,
+                                          height: 200,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.8,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            child: const Text(
-                              '🫧',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          ),
-                        ),
-                      ],
-                      // Animated Toothbrush
-                      if (isRunning)
-                        AnimatedBuilder(
-                          animation: _brushingController,
-                          builder: (context, child) {
-                            return Transform.translate(
-                              offset: Offset(
-                                20.0 *
-                                    (0.5 -
-                                        _brushingController
-                                            .value), // Move left-right
-                                0,
-                              ),
-                              child: Transform.rotate(
-                                angle:
-                                    -0.2 +
-                                    (0.4 *
-                                        _brushingController
-                                            .value), // Rotate slightly
-                                child: const Text(
-                                  '🪥',
-                                  style: TextStyle(fontSize: 80),
+                              const SizedBox(height: 24),
+                              // Message
+                              Text(
+                                isRunning
+                                    ? "Brosse bien partout !"
+                                    : "Prêt pour un sourire éclatant ?",
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                  shadows: AppTheme.textShadows,
                                 ),
+                                textAlign: TextAlign.center,
                               ),
-                            );
-                          },
-                        )
-                      else
-                        Transform.translate(
-                          offset: const Offset(20, 10),
-                          child: Transform.rotate(
-                            angle: -0.5,
-                            child: const Text(
-                              '🪥',
-                              style: TextStyle(fontSize: 80),
-                            ),
+                              const SizedBox(height: 24),
+                              // Boutons de contrôle
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _buildControlButton(
+                                    onTap: () {
+                                      ref
+                                          .read(brushingProvider.notifier)
+                                          .resetTimer();
+                                    },
+                                    icon: Icons.refresh,
+                                    color: AppTheme.primaryColor,
+                                    size: 58,
+                                  ),
+                                  const SizedBox(width: 36),
+                                  _buildControlButton(
+                                    onTap: () {
+                                      if (isRunning) {
+                                        ref
+                                            .read(brushingProvider.notifier)
+                                            .stopTimer();
+                                      } else {
+                                        ref
+                                            .read(brushingProvider.notifier)
+                                            .startTimer();
+                                      }
+                                    },
+                                    icon: isRunning ? Icons.pause : Icons.play_arrow,
+                                    color: isRunning
+                                        ? AppTheme.warningColor
+                                        : AppTheme.successColor,
+                                    size: 80,
+                                    isPrimary: true,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
-                  CircularPercentIndicator(
-                    radius: 130.0, // Increased from 100.0
-                    lineWidth: 20.0, // Increased from 15.0
-                    percent:
-                        (1.0 -
-                                (secondsRemaining /
-                                    (totalDuration == 0 ? 1 : totalDuration)))
-                            .clamp(0.0, 1.0),
-                    center: Text(
-                      "${(secondsRemaining ~/ 60).toString().padLeft(2, '0')}:${(secondsRemaining % 60).toString().padLeft(2, '0')}",
-                      style: const TextStyle(
-                        fontSize: 44, // Reduced from 50
-                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    progressColor: AppTheme.primaryColor,
-                    backgroundColor: AppTheme.primaryColor.withValues(
-                      alpha: 0.1,
-                    ),
-                    circularStrokeCap: CircularStrokeCap.round,
                   ),
-                  const SizedBox(height: 40),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Reset Button
-                      FloatingActionButton(
-                        heroTag: "reset_btn",
-                        onPressed: () {
-                          ref.read(brushingProvider.notifier).resetTimer();
-                        },
-                        backgroundColor: Colors.white24,
-                        child: const Icon(
-                          Icons.refresh,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 40),
-                      // Play/Pause Button
-                      FloatingActionButton.large(
-                        heroTag: "play_btn",
-                        onPressed: () {
-                          if (isRunning) {
-                            ref.read(brushingProvider.notifier).stopTimer();
-                          } else {
-                            ref.read(brushingProvider.notifier).startTimer();
-                          }
-                        },
-                        backgroundColor: isRunning
-                            ? AppTheme.warningColor
-                            : AppTheme.successColor,
-                        child: Icon(
-                          isRunning ? Icons.pause : Icons.play_arrow,
-                          color: Colors.white,
-                          size: 60,
-                        ),
-                      ),
-                      const SizedBox(width: 96), // Balance the row visually
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-                  Text(
-                    isRunning
-                        ? "Brosse bien partout !"
-                        : "Prêt pour un sourire éclatant ?",
-                    style: const TextStyle(fontSize: 18, color: Colors.white70),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 50), // Push content up slightly
-                ],
+                ),
+            ],
+                ),
               ),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }

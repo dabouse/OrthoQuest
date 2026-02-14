@@ -49,6 +49,9 @@ dependencies:
   avatar_glow: ^3.0.1
   confetti: ^0.8.0
   printing: ^5.13.2
+  share_plus: ^12.0.1
+  file_picker: ^10.3.10
+  wallpaper_handler: ^0.0.3
   # flutter_local_notifications: ^17.0.0  # Temporairement désactivé pour compilation
 
 dev_dependencies:

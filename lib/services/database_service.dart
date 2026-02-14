@@ -5,6 +5,9 @@ import 'package:path/path.dart';
 import '../models/session.dart';
 import '../utils/date_utils.dart';
 import '../models/badge.dart';
+import 'dart:io';
+import 'package:share_plus/share_plus.dart';
+import 'package:file_picker/file_picker.dart';
 
 /// Service singleton gérant la base de données SQLite locale.
 ///
@@ -46,24 +49,25 @@ class DatabaseService {
 
   DatabaseService._internal();
 
-  static final _dbLock = Completer<Database>();
-  static bool _dbInitializing = false;
+  static Completer<Database>? _dbCompleter;
 
   Future<Database> get database async {
-    if (_database != null) return _database!;
+    if (_database != null && _database!.isOpen) return _database!;
 
-    if (!_dbInitializing) {
-      _dbInitializing = true;
-      try {
-        _database = await _initDatabase();
-        _dbLock.complete(_database);
-      } catch (e) {
-        // En cas d'erreur, on permet une nouvelle tentative plus tard
-        _dbInitializing = false;
-        rethrow;
-      }
+    if (_dbCompleter != null) return _dbCompleter!.future;
+
+    _dbCompleter = Completer<Database>();
+    try {
+      _database = await _initDatabase();
+      _dbCompleter!.complete(_database);
+      final db = _database!;
+      _dbCompleter = null;
+      return db;
+    } catch (e) {
+      _dbCompleter!.completeError(e);
+      _dbCompleter = null;
+      rethrow;
     }
-    return _dbLock.future;
   }
 
   Future<Database> _initDatabase() async {
@@ -98,8 +102,8 @@ class DatabaseService {
     // Insert default settings
     await db.insert(tableSettings, {
       colKey: 'brushing_duration',
-      colValue: '120',
-    }); // 2 minutes in seconds
+      colValue: '300',
+    }); // 5 minutes in seconds
     await db.insert(tableSettings, {
       colKey: 'day_end_hour',
       colValue: '5',
@@ -554,5 +558,50 @@ class DatabaseService {
     // Redébloquer le thème par défaut
     await unlockAsset('default_neon', 'theme');
     await unlockAsset('👤', 'avatar');
+  }
+
+  // --- Export & Import Methods ---
+
+  /// Exporte la base de données actuelle via le menu de partage du système.
+  Future<void> exportDatabase() async {
+    final db = await database;
+    final path = db.path;
+    await Share.shareXFiles(
+      [XFile(path)],
+      text: 'Sauvegarde OrthoQuest - ${DateTime.now().toIso8601String()}',
+    );
+  }
+
+  /// Ouvre un sélecteur de fichier pour importer une base de données.
+  /// Écrase la base actuelle si un fichier est sélectionné.
+  Future<bool> importDatabase() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final File selectedFile = File(result.files.single.path!);
+
+        // Fermer la connexion actuelle
+        if (_database != null) {
+          await _database!.close();
+          _database = null;
+        }
+
+        final dbPath = await getDatabasesPath();
+        final path = join(dbPath, 'orthoquest.db');
+
+        // Faire une copie de sécurité de l'actuelle au cas où ? 
+        // Pour faire simple on écrase direct.
+        await selectedFile.copy(path);
+
+        // La prochaine fois que 'database' sera appelé, elle se réouvrira
+        return true;
+      }
+    } catch (e) {
+      print("Erreur lors de l'import : $e");
+    }
+    return false;
   }
 }

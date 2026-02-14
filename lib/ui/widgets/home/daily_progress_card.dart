@@ -34,7 +34,12 @@ class DailyProgressCard extends ConsumerWidget {
               _buildSessionList(context, ref, timerState),
 
               // Jauge circulaire principale
-              CircularPercentIndicator(
+              Center(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.topCenter,
+                  children: [
+                    CircularPercentIndicator(
                 radius: 115.0,
                 lineWidth: 20.0,
                 percent: progress,
@@ -128,6 +133,53 @@ class DailyProgressCard extends ConsumerWidget {
                       shadows: AppTheme.textShadows,
                     ),
                   ),
+                ),
+                    ),
+                    // Bordure extérieure (230 = 2×radius)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: IgnorePointer(
+                          child: SizedBox(
+                            width: 230,
+                            height: 230,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Bordure intérieure (210 = 2×radius - lineWidth, bord intérieur du ring)
+                    Positioned(
+                      top: 20,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: IgnorePointer(
+                          child: SizedBox(
+                            width: 190,
+                            height: 190,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

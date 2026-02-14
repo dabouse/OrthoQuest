@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wallpaper_handler/wallpaper_handler.dart';
+import '../../services/wallpaper_service.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/wallpaper_utils.dart';
 import '../widgets/vibrant_card.dart';
 
 class RewardsScreen extends ConsumerWidget {
@@ -248,6 +251,36 @@ class RewardsScreen extends ConsumerWidget {
                         child: Icon(Icons.lock, color: Colors.white, size: 40),
                       ),
                     ),
+                  if (isUnlocked &&
+                      isWallpaperSupported &&
+                      AppTheme.themeImagePaths[themeId] != null)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Tooltip(
+                        message: 'Mettre en fond d\'écran du téléphone',
+                        child: Material(
+                          color: Colors.black45,
+                          borderRadius: BorderRadius.circular(20),
+                          child: InkWell(
+                            onTap: () => _showWallpaperConfirmDialog(
+                              context,
+                              AppTheme.themeImagePaths[themeId]!,
+                              themeNames[themeId] ?? themeId,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            child: Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: Icon(
+                                Icons.wallpaper,
+                                color: AppTheme.primaryColor,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -289,5 +322,137 @@ class RewardsScreen extends ConsumerWidget {
         );
       }, childCount: AppTheme.themes.length),
     );
+  }
+
+  static void _showWallpaperConfirmDialog(
+    BuildContext screenContext,
+    String assetPath,
+    String themeName,
+  ) {
+    WallpaperLocation selectedLocation = WallpaperLocation.bothScreens;
+
+    showDialog(
+      context: screenContext,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Définir en fond d\'écran'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tu vas définir le thème « $themeName » comme fond d\'écran '
+                  'de ton téléphone. Choisis où l\'appliquer :',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 20),
+                RadioListTile<WallpaperLocation>(
+                  title: const Text('Écran d\'accueil'),
+                  subtitle: const Text('Visible quand tu utilises ton téléphone'),
+                  value: WallpaperLocation.homeScreen,
+                  groupValue: selectedLocation,
+                  activeColor: AppTheme.primaryColor,
+                  onChanged: (value) {
+                    if (value != null) setState(() => selectedLocation = value);
+                  },
+                ),
+                RadioListTile<WallpaperLocation>(
+                  title: const Text('Écran de verrouillage'),
+                  subtitle: const Text('Visible quand le téléphone est verrouillé'),
+                  value: WallpaperLocation.lockScreen,
+                  groupValue: selectedLocation,
+                  activeColor: AppTheme.primaryColor,
+                  onChanged: (value) {
+                    if (value != null) setState(() => selectedLocation = value);
+                  },
+                ),
+                RadioListTile<WallpaperLocation>(
+                  title: const Text('Les deux'),
+                  subtitle: const Text('Accueil et verrouillage'),
+                  value: WallpaperLocation.bothScreens,
+                  groupValue: selectedLocation,
+                  activeColor: AppTheme.primaryColor,
+                  onChanged: (value) {
+                    if (value != null) setState(() => selectedLocation = value);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _setThemeAsWallpaper(screenContext, assetPath, selectedLocation);
+              },
+              child: const Text('Définir'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Future<void> _setThemeAsWallpaper(
+    BuildContext context,
+    String assetPath,
+    WallpaperLocation location,
+  ) async {
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const AlertDialog(
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 20),
+            Expanded(
+              child: Text('Définition du fond d\'écran en cours...'),
+            ),
+          ],
+        ),
+      ),
+    );
+    bool success = false;
+    try {
+      success = await setWallpaperFromAssetPreservingColors(
+        assetPath,
+        location,
+      );
+    } catch (_) {
+      success = false;
+    } finally {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        final locationLabel = switch (location) {
+          WallpaperLocation.homeScreen => 'l\'écran d\'accueil',
+          WallpaperLocation.lockScreen => 'l\'écran de verrouillage',
+          WallpaperLocation.bothScreens =>
+            'l\'écran d\'accueil et le verrouillage',
+        };
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Fond d\'écran défini sur $locationLabel !'
+                  : 'Impossible de définir le fond d\'écran.',
+            ),
+            backgroundColor:
+                success ? AppTheme.successColor : AppTheme.errorColor,
+          ),
+        );
+      }
+    }
   }
 }
