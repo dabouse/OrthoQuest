@@ -16,6 +16,7 @@ class TimerState {
   final List<Session> dailySessions;
   final Map<DateTime, int> recentHistory;
   final int dailyGoal; // Hours
+  final int dayEndHour; // Heure de fin de journée (0-23, ex: 5 = 5h du matin)
 
   TimerState({
     this.isRunning = false,
@@ -25,6 +26,7 @@ class TimerState {
     this.dailySessions = const [],
     this.recentHistory = const {},
     this.dailyGoal = 13,
+    this.dayEndHour = 5,
   });
 
   TimerState copyWith({
@@ -35,6 +37,7 @@ class TimerState {
     List<Session>? dailySessions,
     Map<DateTime, int>? recentHistory,
     int? dailyGoal,
+    int? dayEndHour,
   }) {
     return TimerState(
       isRunning: isRunning ?? this.isRunning,
@@ -45,6 +48,7 @@ class TimerState {
       dailySessions: dailySessions ?? this.dailySessions,
       recentHistory: recentHistory ?? this.recentHistory,
       dailyGoal: dailyGoal ?? this.dailyGoal,
+      dayEndHour: dayEndHour ?? this.dayEndHour,
     );
   }
 }
@@ -72,16 +76,21 @@ class TimerNotifier extends Notifier<TimerState> {
   }
 
   Future<void> _init() async {
+    await refreshSettings(); // Charge dailyGoal et dayEndHour avant les stats
     await _checkOpenSession();
     await _loadDailyStats();
     await _loadHistory();
-    await refreshSettings();
   }
 
   Future<void> refreshSettings() async {
     final goalStr = await DatabaseService().getSetting('daily_goal');
+    final dayEndStr = await DatabaseService().getSetting('day_end_hour');
     final goal = int.tryParse(goalStr ?? '13') ?? 13;
-    state = state.copyWith(dailyGoal: goal);
+    final dayEndHour = int.tryParse(dayEndStr ?? '5') ?? 5;
+    state = state.copyWith(dailyGoal: goal, dayEndHour: dayEndHour);
+    // Recharger les stats car day_end_hour affecte le découpage des journées
+    await _loadDailyStats();
+    await _loadHistory();
   }
 
   Future<void> _loadHistory() async {
@@ -106,8 +115,8 @@ class TimerNotifier extends Notifier<TimerState> {
 
   Future<void> _loadDailyStats() async {
     final now = DateTime.now();
-    // Utilisation de l'utilitaire centralisé pour la règle des 5h du matin
-    final dayStart = OrthoDateUtils.getDayStart(now);
+    final dayEndHour = state.dayEndHour;
+    final dayStart = OrthoDateUtils.getDayStart(now, dayEndHour: dayEndHour);
     final dayEnd = dayStart.add(const Duration(days: 1));
 
     final allSessions = await DatabaseService().getSessions();

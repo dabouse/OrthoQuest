@@ -250,19 +250,19 @@ class DatabaseService {
 
   // Get daily stats for the last 7 days
   // Returns map of Date -> Duration(minutes)
+  // Utilise day_end_hour des paramètres pour la règle de découpage des journées.
   Future<Map<DateTime, int>> getDailySummaries() async {
     final sessions = await getSessions();
     final summaries = <DateTime, int>{};
+    final dayEndHour = int.tryParse(await getSetting('day_end_hour') ?? '5') ?? 5;
 
-    // We need to group sessions by "reporting day" (starts at 5 AM)
     for (var session in sessions) {
       if (session.endTime == null) {
         continue;
       }
 
       final start = session.startTime;
-      // Utilisation de l'utilitaire centralisé pour la règle des 5h du matin
-      final reportingDate = OrthoDateUtils.getReportingDate(start);
+      final reportingDate = OrthoDateUtils.getReportingDate(start, dayEndHour: dayEndHour);
 
       final duration = session.durationInMinutes;
       summaries[reportingDate] = (summaries[reportingDate] ?? 0) + duration;
@@ -272,9 +272,10 @@ class DatabaseService {
   }
 
   /// Retourne le total exact en millisecondes pour la journée de reporting donnée.
-  /// Si [date] est null, utilise la date actuelle adjusted (5 AM).
+  /// Si [date] est null, utilise la date actuelle. Utilise day_end_hour des paramètres.
   Future<int> getTodayTotalMs([DateTime? date]) async {
-    final reportDate = OrthoDateUtils.getReportingDate(date ?? DateTime.now());
+    final dayEndHour = int.tryParse(await getSetting('day_end_hour') ?? '5') ?? 5;
+    final reportDate = OrthoDateUtils.getReportingDate(date ?? DateTime.now(), dayEndHour: dayEndHour);
     final sessions = await getSessions();
     int totalMs = 0;
 
@@ -283,6 +284,7 @@ class DatabaseService {
 
       final sessionReportDate = OrthoDateUtils.getReportingDate(
         session.startTime,
+        dayEndHour: dayEndHour,
       );
       if (sessionReportDate.year == reportDate.year &&
           sessionReportDate.month == reportDate.month &&
@@ -573,35 +575,70 @@ class DatabaseService {
   }
 
   /// Ouvre un sélecteur de fichier pour importer une base de données.
-  /// Écrase la base actuelle si un fichier est sélectionné.
+  /// Efface la base actuelle puis copie le fichier sélectionné pour un état propre.
+  /// Retourne true en cas de succès, false sinon.
   Future<bool> importDatabase() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.any,
       );
 
-      if (result != null && result.files.single.path != null) {
-        final File selectedFile = File(result.files.single.path!);
-
-        // Fermer la connexion actuelle
-        if (_database != null) {
-          await _database!.close();
-          _database = null;
-        }
-
-        final dbPath = await getDatabasesPath();
-        final path = join(dbPath, 'orthoquest.db');
-
-        // Faire une copie de sécurité de l'actuelle au cas où ? 
-        // Pour faire simple on écrase direct.
-        await selectedFile.copy(path);
-
-        // La prochaine fois que 'database' sera appelé, elle se réouvrira
-        return true;
+      if (result == null ||
+          result.files.isEmpty ||
+          result.files.single.path == null) {
+        return false;
       }
+
+      final File selectedFile = File(result.files.single.path!);
+      if (!await selectedFile.exists()) {
+        print("Fichier sélectionné introuvable : ${selectedFile.path}");
+        return false;
+      }
+
+      final dbPath = await getDatabasesPath();
+      final path = join(dbPath, 'orthoquest.db');
+      final backupPath = '$path.backup';
+
+      // 1. Fermer la connexion actuelle
+      if (_database != null) {
+        await _database!.close();
+        _database = null;
+        _dbCompleter = null;
+      }
+
+      // 2. Sauvegarde de secours avant suppression (au cas où la copie échoue)
+      final existingDb = File(path);
+      if (await existingDb.exists()) {
+        await existingDb.copy(backupPath);
+        await existingDb.delete();
+      }
+
+      // 3. Copier le fichier importé
+      await selectedFile.copy(path);
+
+      // 4. Supprimer la sauvegarde (succès)
+      final backup = File(backupPath);
+      if (await backup.exists()) {
+        await backup.delete();
+      }
+
+      return true;
     } catch (e) {
       print("Erreur lors de l'import : $e");
+      // Tenter de restaurer la sauvegarde en cas d'échec
+      try {
+        final dbPath = await getDatabasesPath();
+        final path = join(dbPath, 'orthoquest.db');
+        final backupPath = '$path.backup';
+        final backup = File(backupPath);
+        if (await backup.exists()) {
+          await backup.copy(path);
+          await backup.delete();
+        }
+      } catch (restoreError) {
+        print("Restauration échouée : $restoreError");
+      }
+      return false;
     }
-    return false;
   }
 }

@@ -77,8 +77,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (key == 'daily_goal') _dailyGoal = newValue;
     });
 
-    // Notify TimerProvider
-    if (key == 'daily_goal') {
+    // Notifier les providers pour recharger les stats avec les nouveaux paramètres
+    if (key == 'daily_goal' || key == 'day_end_hour') {
       ref.read(timerProvider.notifier).refreshSettings();
       ref.read(userProvider.notifier).refresh();
     }

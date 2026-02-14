@@ -33,7 +33,10 @@ class HistoryCard extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: days.reversed.map((daysAgo) {
               final refDate = DateTime.now().subtract(Duration(days: daysAgo));
-              final reportingDate = OrthoDateUtils.getReportingDate(refDate);
+              final reportingDate = OrthoDateUtils.getReportingDate(
+                refDate,
+                dayEndHour: timerState.dayEndHour,
+              );
               final minutes = history[reportingDate] ?? 0;
               final targetMin = timerState.dailyGoal * 60;
               final percentage = (minutes / targetMin).clamp(0.0, 1.0);

@@ -8,7 +8,7 @@ L'objectif est d'atteindre une durée cible quotidienne (par défaut 12-13h) pou
 
 -   **Suivi du temps de port** : Timer simple Start/Stop.
 -   **Objectif visuel** : Jauge circulaire pour voir la progression de la journée.
--   **Règle des 5h du matin** : Une "journée" de port se termine à 5h du matin le lendemain. Cela permet de compter une nuit complète de sommeil sur la même date (essentiel pour l'orthodontie).
+-   **Heure de fin de journée configurable** : Une "journée" de port se termine à l'heure configurée (par défaut 5h du matin). Cela permet de compter une nuit complète de sommeil sur la même date (essentiel pour l'orthodontie).
 -   **Timer de Brossage** : Un minuteur de 5 minutes (configurable) avec animation et son pour accompagner le brossage des dents. Interface harmonisée avec le reste de l'app (cartes translucides, anneau avec bordures, boutons stylisés).
 -   **Statistiques** : Graphique des 7 derniers jours pour voir la régularité.
 -   **Stickers** : Un petit système de notes/humeur pour chaque session.
@@ -68,7 +68,10 @@ lib/
 
 ## ⚙️ Configuration
 
-Les réglages (durée de brossage, heure de fin de journée) sont stockés en base de données localement.
+Les réglages sont stockés en base de données localement :
+- **Heure de fin de journée** : L’heure à partir de laquelle une nouvelle journée commence (par défaut 5h). Les sessions terminées avant cette heure comptent pour le jour précédent.
+- **Durée du brossage** : Durée du minuteur de brossage (par défaut 5 min).
+- **Objectif quotidien** : Nombre d’heures de port cible par jour (par défaut 13h).
 
 ### Fond d'écran (Android)
 

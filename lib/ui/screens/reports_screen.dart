@@ -573,6 +573,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                           date.day,
                                         );
 
+                                        final dayEndHour = timerState.dayEndHour;
                                         final daySessions = _allSessions.where((
                                           s,
                                         ) {
@@ -582,6 +583,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                           return DateUtils.isSameDay(
                                             OrthoDateUtils.getReportingDate(
                                               s.startTime,
+                                              dayEndHour: dayEndHour,
                                             ),
                                             normalizedDate,
                                           );
@@ -699,6 +701,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               _buildStickersTimeline(
                                 startOfPeriod,
                                 daysInPeriod,
+                                timerState.dayEndHour,
                               ),
                             ],
                           ),
@@ -713,12 +716,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Widget _buildStickersTimeline(DateTime startOfPeriod, int daysInPeriod) {
+  Widget _buildStickersTimeline(
+    DateTime startOfPeriod,
+    int daysInPeriod,
+    int dayEndHour,
+  ) {
     final endOfPeriod = startOfPeriod.add(Duration(days: daysInPeriod));
 
     final filteredSessions = _allSessions.where((s) {
       if (s.endTime == null) return false;
-      final sessionDate = OrthoDateUtils.getReportingDate(s.startTime);
+      final sessionDate = OrthoDateUtils.getReportingDate(
+        s.startTime,
+        dayEndHour: dayEndHour,
+      );
 
       // Si un jour est sélectionné, on filtre. Sinon on montre toute la période.
       if (_selectedDate != null) {
@@ -822,17 +832,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
               return GestureDetector(
                 onTap: () {
-                  setState(() {
-                    if (_selectedSessionId == session.id) {
-                      _selectedSessionId = null;
-                      _selectedDate = null;
-                    } else {
-                      _selectedSessionId = session.id;
-                      _selectedDate = OrthoDateUtils.getReportingDate(
-                        session.startTime,
-                      );
-                    }
-                  });
+                    setState(() {
+                      if (_selectedSessionId == session.id) {
+                        _selectedSessionId = null;
+                        _selectedDate = null;
+                      } else {
+                        _selectedSessionId = session.id;
+                        final dayEnd = ref.read(timerProvider).dayEndHour;
+                        _selectedDate = OrthoDateUtils.getReportingDate(
+                          session.startTime,
+                          dayEndHour: dayEnd,
+                        );
+                      }
+                    });
                 },
                 child: Container(
                   width: 75,

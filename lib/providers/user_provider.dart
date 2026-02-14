@@ -71,13 +71,15 @@ class UserNotifier extends Notifier<UserState> {
     // Load generic stats (xp, level) from DB
     final stats = await DatabaseService().getUserStats();
 
-    // Load goal
+    // Load goal et heure de fin de journée
     final goalStr = await DatabaseService().getSetting('daily_goal');
+    final dayEndStr = await DatabaseService().getSetting('day_end_hour');
     final goal = int.tryParse(goalStr ?? '13') ?? 13;
+    final dayEndHour = int.tryParse(dayEndStr ?? '5') ?? 5;
 
     // For streak, we calculate it dynamically from sessions
     final summaries = await DatabaseService().getDailySummaries();
-    final streak = _calculateStreak(summaries, goal);
+    final streak = _calculateStreak(summaries, goal, dayEndHour);
 
     final badges = await DatabaseService().getUnlockedBadges();
 
@@ -124,13 +126,12 @@ class UserNotifier extends Notifier<UserState> {
     _checkLevelRewards(state.level);
   }
 
-  int _calculateStreak(Map<DateTime, int> summaries, int dailyGoal) {
+  int _calculateStreak(Map<DateTime, int> summaries, int dailyGoal, int dayEndHour) {
     int streak = 0;
     final now = DateTime.now();
     final targetMinutes = dailyGoal * 60;
 
-    // Utilisation de l'utilitaire centralisé pour la règle des 5h du matin
-    final reportingToday = OrthoDateUtils.getReportingDate(now);
+    final reportingToday = OrthoDateUtils.getReportingDate(now, dayEndHour: dayEndHour);
 
     // Check Today
     if ((summaries[reportingToday] ?? 0) >= targetMinutes) {
