@@ -219,10 +219,5 @@ Si vous voulez tester avant la publication officielle :
 > Si vous perdez ces fichiers et n'avez pas activé Play App Signing,
 > vous ne pourrez plus mettre à jour votre application sur le Play Store.
 
-**Mot de passe du keystore** : `OrthoQuest2026!`
+**Mot de passe du keystore** : voir le fichier `android/key.properties` (non versionné)
 **Alias** : `upload`
-
-Il est recommandé de changer ce mot de passe pour un mot de passe plus sécurisé :
-```bash
-keytool -storepasswd -keystore android/app/upload-keystore.jks
-```

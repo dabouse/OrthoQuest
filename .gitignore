@@ -30,14 +30,8 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-# Build (sauf APK de release pour les inclure dans le dépôt)
-/build/*
-!/build/app/
-/build/app/*
-!/build/app/outputs/
-/build/app/outputs/*
-!/build/app/outputs/flutter-apk/
-!/build/app/outputs/flutter-apk/*
+# Build artifacts
+/build/
 
 /coverage/
 
