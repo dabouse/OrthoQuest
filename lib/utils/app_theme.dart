@@ -251,8 +251,8 @@ class AppBackground extends ConsumerWidget {
     final cacheWidth = (size.width * dpr).round().clamp(1, 1080);
     final cacheHeight = (size.height * dpr).round().clamp(1, 1920);
 
-    return Scaffold(
-      body: Stack(
+    return SizedBox.expand(
+      child: Stack(
         children: [
           Positioned.fill(
             child: imagePath != null

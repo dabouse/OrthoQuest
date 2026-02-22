@@ -54,137 +54,138 @@ class DailyProgressCard extends ConsumerWidget {
 
               // Jauge circulaire principale
               Center(
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.topCenter,
+                child: Column(
                   children: [
-                    CircularPercentIndicator(
-                radius: 115.0 * s,
-                lineWidth: 20.0 * s,
-                percent: progress,
-                center: Padding(
-                  padding: const EdgeInsets.all(15.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          SessionUtils.formatDuration(totalDuration),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 28.0,
-                            color: Colors.white,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black,
-                                offset: Offset(0, 2),
-                                blurRadius: 4,
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Cercle décoratif extérieur (même diamètre que l'indicateur)
+                        IgnorePointer(
+                          child: SizedBox(
+                            width: 230 * s,
+                            height: 230 * s,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
                               ),
-                              Shadow(
-                                color: AppTheme.primaryColor,
-                                blurRadius: 8,
-                              ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                      const Text(
-                        "Aujourd'hui",
-                        style: TextStyle(
+                        // Cercle décoratif intérieur
+                        IgnorePointer(
+                          child: SizedBox(
+                            width: 190 * s,
+                            height: 190 * s,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Indicateur circulaire (par-dessus les cercles décoratifs)
+                        CircularPercentIndicator(
+                          radius: 115.0 * s,
+                          lineWidth: 20.0 * s,
+                          percent: progress,
+                          center: Padding(
+                            padding: const EdgeInsets.all(15.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    SessionUtils.formatDuration(totalDuration),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 28.0,
+                                      color: Colors.white,
+                                      shadows: [
+                                        Shadow(
+                                          color: Colors.black,
+                                          offset: Offset(0, 2),
+                                          blurRadius: 4,
+                                        ),
+                                        Shadow(
+                                          color: AppTheme.primaryColor,
+                                          blurRadius: 8,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  "Aujourd'hui",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                    shadows: AppTheme.textShadows,
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color:
+                                          (totalDuration.inHours >= timerState.dailyGoal)
+                                          ? AppTheme.successColor
+                                          : AppTheme.primaryColor,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    "Objectif: ${timerState.dailyGoal}h",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          (totalDuration.inHours >= timerState.dailyGoal)
+                                          ? AppTheme.successColor
+                                          : AppTheme.primaryColor,
+                                      shadows: AppTheme.textShadows,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          progressColor: (totalDuration.inHours >= timerState.dailyGoal)
+                              ? AppTheme.successColor
+                              : (progress >= 0.5
+                                    ? AppTheme.primaryColor
+                                    : AppTheme.accentColor),
+                          backgroundColor: Colors.white.withValues(alpha: 0.1),
+                          circularStrokeCap: CircularStrokeCap.round,
+                          animation: true,
+                          animateFromLastPercent: true,
+                        ),
+                      ],
+                    ),
+                    // Footer sorti du CircularPercentIndicator pour ne pas perturber le Stack
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6.0),
+                      child: Text(
+                        (totalDuration.inMinutes >= targetMinutes)
+                            ? "OBJECTIF ATTEINT"
+                            : (timerState.isRunning ? "EN COURS..." : "EN ATTENTE"),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2.0,
                           color: Colors.white,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 10,
                           shadows: AppTheme.textShadows,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color:
-                                (totalDuration.inHours >= timerState.dailyGoal)
-                                ? AppTheme.successColor
-                                : AppTheme.primaryColor,
-                          ),
-                        ),
-                        child: Text(
-                          "Objectif: ${timerState.dailyGoal}h",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color:
-                                (totalDuration.inHours >= timerState.dailyGoal)
-                                ? AppTheme.successColor
-                                : AppTheme.primaryColor,
-                            shadows: AppTheme.textShadows,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                progressColor: (totalDuration.inHours >= timerState.dailyGoal)
-                    ? AppTheme.successColor
-                    : (progress >= 0.5
-                          ? AppTheme.primaryColor
-                          : AppTheme.accentColor),
-                backgroundColor: Colors.white.withValues(alpha: 0.1),
-                circularStrokeCap: CircularStrokeCap.round,
-                animation: true,
-                animateFromLastPercent: true,
-                footer: Padding(
-                  padding: const EdgeInsets.only(top: 6.0),
-                  child: Text(
-                    (totalDuration.inMinutes >= targetMinutes)
-                        ? "OBJECTIF ATTEINT"
-                        : (timerState.isRunning ? "EN COURS..." : "EN ATTENTE"),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2.0,
-                      color: Colors.white,
-                      fontSize: 10,
-                      shadows: AppTheme.textShadows,
-                    ),
-                  ),
-                ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      child: IgnorePointer(
-                        child: SizedBox(
-                          width: 230 * s,
-                          height: 230 * s,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.8),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 20 * s,
-                      child: IgnorePointer(
-                        child: SizedBox(
-                          width: 190 * s,
-                          height: 190 * s,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.8),
-                              ),
-                            ),
-                          ),
                         ),
                       ),
                     ),

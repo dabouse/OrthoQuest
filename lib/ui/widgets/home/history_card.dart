@@ -20,14 +20,18 @@ class HistoryCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "HISTORIQUE (3J)",
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              shadows: AppTheme.textShadows,
-              letterSpacing: 1.2,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              "HISTORIQUE (3J)",
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                shadows: AppTheme.textShadows,
+                letterSpacing: 1.2,
+              ),
             ),
           ),
           const SizedBox(height: 12),

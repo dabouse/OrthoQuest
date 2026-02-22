@@ -35,13 +35,16 @@ class LevelBar extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            "Niveau ${userState.level} • ${userState.xp % 1000} / 1000 XP",
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              shadows: AppTheme.textShadows,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              "Niveau ${userState.level} • ${userState.xp % 1000} / 1000 XP",
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                shadows: AppTheme.textShadows,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -65,13 +68,16 @@ class LevelBar extends ConsumerWidget {
                     color: AppTheme.warningColor,
                   ),
                   SizedBox(width: 8),
-                  Text(
-                    "Comment gagner de l'XP ?",
-                    style: TextStyle(
-                      color: AppTheme.warningColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      shadows: AppTheme.textShadows,
+                  Flexible(
+                    child: Text(
+                      "Comment gagner de l'XP ?",
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppTheme.warningColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        shadows: AppTheme.textShadows,
+                      ),
                     ),
                   ),
                 ],

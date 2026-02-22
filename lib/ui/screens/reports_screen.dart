@@ -265,13 +265,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               onPressed: () => _navigate(-1),
                             ),
                           ),
-                          Text(
-                            periodLabel,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.white,
-                              shadows: AppTheme.textShadows,
+                          Flexible(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  periodLabel,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.white,
+                                    shadows: AppTheme.textShadows,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                           Container(
@@ -300,18 +308,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             children: [
                               // Summary Cards inside the main card
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
                                 children: [
-                                  _buildSummaryCard(
-                                    "Moyenne",
-                                    "${(avgMinutes / 60).toStringAsFixed(1)}h",
+                                  Expanded(
+                                    child: _buildSummaryCard(
+                                      "Moyenne",
+                                      "${(avgMinutes / 60).toStringAsFixed(1)}h",
+                                    ),
                                   ),
-                                  _buildSummaryCard(
-                                    _viewMode == ReportViewMode.week
-                                        ? "7 jours"
-                                        : "Mois",
-                                    "${(totalMinutes / 60).toStringAsFixed(1)}h",
+                                  Expanded(
+                                    child: _buildSummaryCard(
+                                      _viewMode == ReportViewMode.week
+                                          ? "7 jours"
+                                          : "Mois",
+                                      "${(totalMinutes / 60).toStringAsFixed(1)}h",
+                                    ),
                                   ),
                                 ],
                               ),
@@ -924,11 +934,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildSummaryCard(String title, String value) {
-    return SizedBox(
-      width: 150,
-      child: Column(
-        children: [
-          Text(
+    return Column(
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
             title,
             style: const TextStyle(
               color: Colors.white,
@@ -938,8 +948,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               shadows: AppTheme.textShadows,
             ),
           ),
-          const SizedBox(height: 10),
-          Text(
+        ),
+        const SizedBox(height: 10),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
             value,
             style: const TextStyle(
               fontSize: 24,
@@ -950,8 +963,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               shadows: AppTheme.textShadows,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

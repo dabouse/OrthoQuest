@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -92,6 +93,13 @@ class _OrthoQuestAppState extends ConsumerState<OrthoQuestApp>
       title: 'OrthoQuest',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
+      locale: const Locale('fr', 'FR'),
+      supportedLocales: const [Locale('fr', 'FR')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: FutureBuilder<bool>(
         future: _checkFirstLaunch(),
         builder: (context, snapshot) {
@@ -142,13 +150,18 @@ class LoadingLogo extends StatelessWidget {
           ),
         ],
       ),
-      child: Image.asset(
-        'assets/images/logo.png',
-        width: 330,
-        height: 330,
-        fit: BoxFit.contain,
-        cacheWidth: 660, // 2x pour écrans retina
-        cacheHeight: 660,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final logoSize = (MediaQuery.sizeOf(context).shortestSide * 0.8).clamp(150.0, 330.0);
+          return Image.asset(
+            'assets/images/logo.png',
+            width: logoSize,
+            height: logoSize,
+            fit: BoxFit.contain,
+            cacheWidth: (logoSize * 2).round(),
+            cacheHeight: (logoSize * 2).round(),
+          );
+        },
       ),
     );
   }

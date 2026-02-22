@@ -37,11 +37,14 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text(
-          'OrthoQuest',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            shadows: AppTheme.textShadows,
+        title: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'OrthoQuest',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              shadows: AppTheme.textShadows,
+            ),
           ),
         ),
         centerTitle: true,
@@ -80,8 +83,7 @@ class HomeScreen extends ConsumerWidget {
                   Icon(
                     userState.streak >= 3
                         ? Icons.local_fire_department
-                        : Icons
-                              .calendar_today, // Changed from ac_unit to calendar for 0
+                        : Icons.calendar_today,
                     color: _getStreakColor(userState.streak),
                     size: 16,
                   ),

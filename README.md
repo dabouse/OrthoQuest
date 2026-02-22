@@ -68,6 +68,43 @@ lib/
     flutter run
     ```
 
+## 📱 Émulateur OnePlus Nord
+
+Un émulateur Android personnalisé reproduisant les caractéristiques du **OnePlus Nord (1ère génération)** est configuré pour le projet.
+
+### Spécifications émulées
+
+| Caractéristique | Valeur |
+|---|---|
+| Écran | 6.44" Super AMOLED, 2400 × 1080 px |
+| Densité | 420 dpi (~408 ppi réel) |
+| Rafraîchissement | 90 Hz |
+| Processeur | Snapdragon 765G (émulé x86_64) |
+| RAM | 4 Go (émulateur) / 8 Go (réel) |
+| Stockage | 16 Go (émulateur) / 128 Go (réel) |
+| Android | 10 (API 29) avec Google APIs |
+
+### Lancer l'émulateur
+
+```powershell
+# Via la ligne de commande
+C:\Users\damie\AppData\Local\Android\Sdk\emulator\emulator.exe -avd OnePlus_Nord
+
+# Ou via Flutter
+flutter emulators --launch OnePlus_Nord
+```
+
+### Lancer l'app sur l'émulateur
+
+```bash
+flutter run -d emulator-5554
+```
+
+### Fichiers de configuration
+
+- **Profil de device** : `%USERPROFILE%\.android\devices.xml` — définition XML du OnePlus Nord (écran, capteurs, dimensions)
+- **AVD** : `%USERPROFILE%\.android\avd\OnePlus_Nord.avd\config.ini` — configuration de l'émulateur
+
 ## 🏗️ Build
 
 Le script `build_release.ps1` génère automatiquement le fichier `lib/utils/build_info.dart` (version lue depuis `pubspec.yaml` + date du jour), puis lance le build. La version et la date sont affichées dans la page des paramètres.

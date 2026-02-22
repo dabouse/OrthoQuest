@@ -234,12 +234,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildPage(OnboardingPage page) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final s = (screenHeight / 800.0).clamp(0.65, 1.0);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icon container
           TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: 1.0),
             duration: const Duration(milliseconds: 600),
@@ -248,8 +250,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               return Transform.scale(scale: value, child: child);
             },
             child: Container(
-              width: 140,
-              height: 140,
+              width: 120 * s,
+              height: 120 * s,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
@@ -261,31 +263,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ],
               ),
-              child: Icon(page.icon, size: 70, color: page.iconColor),
+              child: Icon(page.icon, size: 60 * s, color: page.iconColor),
             ),
           ),
 
-          const SizedBox(height: 50),
+          SizedBox(height: 32 * s),
 
-          // Title
           Text(
             page.title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 28,
+            style: TextStyle(
+              fontSize: (26 * s).clamp(18.0, 28.0),
               fontWeight: FontWeight.bold,
               color: Colors.white,
               height: 1.2,
             ),
           ),
 
-          const SizedBox(height: 24),
+          SizedBox(height: 16 * s),
 
-          // Description
           Text(
             page.description,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, color: Colors.white70, height: 1.5),
+            style: TextStyle(
+              fontSize: (15 * s).clamp(12.0, 16.0),
+              color: Colors.white70,
+              height: 1.5,
+            ),
           ),
         ],
       ),
