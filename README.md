@@ -1,165 +1,221 @@
-# OrthoQuest 🦷
+# OrthoQuest
 
-OrthoQuest est une application mobile ludique conçue pour aider les enfants (et les ados !) à suivre le temps de port de leur appareil dentaire.
+![Feature Graphic](screenshot/feature_graphic.png)
 
-L'objectif est d'atteindre une durée cible quotidienne (par défaut 12-13h) pour gagner des récompenses virtuelles (stickers, flammes de série).
+**OrthoQuest** est une application mobile gamifiée qui aide les enfants et adolescents à suivre le temps de port de leur appareil dentaire. Avec un objectif quotidien configurable (par défaut 13h), l'app transforme une routine contraignante en aventure motivante grâce à un système de niveaux, badges, séries et thèmes visuels à débloquer.
 
-## 📱 Fonctionnalités
+Développée en Suisse par Damien Brot.
 
--   **Suivi du temps de port** : Timer simple Start/Stop.
--   **Objectif visuel** : Jauge circulaire pour voir la progression de la journée.
--   **Interface responsive** : L'écran d'accueil s'adapte automatiquement à toutes les résolutions d'écran (jauge circulaire, boutons d'action, barres d'historique et barre de niveau se redimensionnent proportionnellement).
--   **Heure de fin de journée configurable** : Une "journée" de port se termine à l'heure configurée (par défaut minuit). Le temps de port après minuit est compté sur le jour courant. Les sessions traversant cette frontière sont automatiquement découpées entre les deux jours.
--   **Timer de Brossage** : Un minuteur de 5 minutes (configurable) avec animation et son pour accompagner le brossage des dents. Interface harmonisée avec le reste de l'app (cartes translucides, anneau avec bordures, boutons stylisés).
--   **Statistiques** : Graphique des 7 derniers jours pour voir la régularité.
--   **Stickers** : Un petit système de notes/humeur pour chaque session.
--   **Modifier / Supprimer une session** : Appui long sur un sticker de session (écran d'accueil ou statistiques) pour modifier les horaires, la durée, le sticker, ou supprimer la session. L'XP est automatiquement recalculée.
--   **Personnalisation** : Thèmes visuels débloqués par niveau. Les thèmes débloqués peuvent être définis en fond d'écran du téléphone en un clic (Android uniquement). Un indicateur de chargement s'affiche pendant l'opération.
+---
 
-## 🛠 Stack Technique
+## Captures d'écran
 
--   **Framework** : [Flutter](https://flutter.dev/)
--   **Langage** : Dart
--   **Base de Données** : SQLite (via `sqflite`)
--   **Gestion d'État** : Riverpod (Architecture `NotifierProvider`)
--   **Graphiques** : `fl_chart`
--   **Animations** : `lottie`, `avatar_glow`
--   **Fond d'écran** : implémentation native Android (canal Méthode) avec préservation des couleurs et traitement en arrière-plan
+<p align="center">
+  <img src="screenshot/home.png" alt="Écran d'accueil" width="200"/>
+  <img src="screenshot/brossage.png" alt="Timer de brossage" width="200"/>
+  <img src="screenshot/statistique.png" alt="Statistiques" width="200"/>
+  <img src="screenshot/badge.png" alt="Badges" width="200"/>
+</p>
+<p align="center">
+  <img src="screenshot/rapport_semaine.png" alt="Rapport hebdomadaire" width="200"/>
+  <img src="screenshot/parametres.png" alt="Paramètres" width="200"/>
+</p>
 
-## ⚡ Optimisations de performance
+---
 
-- **Images de fond** : décodage à la taille d'affichage (`cacheWidth`/`cacheHeight`) pour éviter de bloquer le thread principal au démarrage.
-- **Placeholder** : le dégradé du thème s'affiche immédiatement pendant le chargement de l'image de fond.
+## Fonctionnalités
 
-## 🖼️ Images de thèmes
+### Suivi du temps de port
+- Timer Start/Stop avec sauvegarde automatique toutes les 30 secondes
+- Jauge circulaire de progression quotidienne avec couleur dynamique
+- Restauration automatique de la session en cours après fermeture de l'app
+- Ajout, modification et suppression de sessions (avec recalcul automatique de l'XP)
+- Heure de fin de journée configurable (découpage automatique des sessions cross-day)
 
-Les fonds d'écran des thèmes sont optimisés pour garder une bonne qualité tout en limitant la taille de l'application. Pour ré-optimiser les images après ajout ou modification :
+### Timer de brossage
+- Minuteur configurable de 1 à 5 minutes avec animation et retour sonore
+- Confettis de célébration à la fin du brossage
+- Récompense de 50 XP par brossage
+
+### Système de progression
+- **XP et niveaux** : 10 XP par heure de port + 50 XP par brossage, 1000 XP par niveau
+- **Série quotidienne** : flamme colorée selon la longueur de la série
+- **5 badges** à débloquer : Premiers Pas, Oiseau de Nuit, Dents d'Acier, Pro de l'Hygiène, Marathonien
+- **Célébration de montée de niveau** avec animation Lottie et confettis
+
+### Stickers d'humeur
+- 5 stickers associés aux sessions (Super, Bien, Moyen, Douleur, Difficile)
+- Timeline des stickers dans les statistiques
+
+### Statistiques et rapports
+- Vue hebdomadaire et mensuelle avec graphique à barres interactif
+- Barres empilées colorées par sticker, ligne d'objectif, zoom et navigation
+- Export PDF des rapports (format A4, avec graphique et tableau détaillé)
+
+### Personnalisation
+- **10 thèmes visuels** à débloquer par niveau (Néon, Espace, Aurore Boréale, Émeraude...)
+- Réglage de la transparence et du flou des cartes (glassmorphism)
+- Définition d'un thème comme fond d'écran du téléphone (Android uniquement)
+
+### Sauvegarde et restauration
+- Export de la base de données (partage du fichier .db)
+- Import d'une sauvegarde avec backup de sécurité automatique
+
+### Onboarding
+- 6 pages de bienvenue animées présentant les fonctionnalités
+- Rejouable depuis les paramètres avancés
+
+### Interface responsive
+- Adaptation automatique à toutes les résolutions d'écran
+- Optimisation des images de fond (décodage à la taille d'affichage)
+- Mode plein écran edge-to-edge
+
+---
+
+## Stack technique
+
+| Composant | Technologie |
+|-----------|-------------|
+| Framework | [Flutter](https://flutter.dev/) |
+| Langage | Dart (SDK ^3.10.8) |
+| Gestion d'état | [Riverpod](https://riverpod.dev/) 3.x (architecture `NotifierProvider`) |
+| Base de données | SQLite via `sqflite` (v5 avec migrations) |
+| Graphiques | `fl_chart` |
+| PDF | `pdf` + `printing` |
+| Animations | `lottie`, `confetti`, `avatar_glow` |
+| Audio | `audioplayers` |
+| Polices | Google Fonts (Orbitron, Roboto) |
+| Fond d'écran | `wallpaper_handler` (Android natif, export conditionnel cross-platform) |
+| Partage / Import | `share_plus`, `file_picker` |
+
+---
+
+## Structure du projet
+
+```
+lib/
+├── main.dart               # Point d'entrée, splash screen
+├── models/                 # Modèles de données (Session, Badge, Setting)
+├── providers/              # Gestion d'état Riverpod (Timer, User, Brushing)
+├── services/               # Services (Database, PDF, Notification, Wallpaper)
+├── ui/
+│   ├── screens/            # 8 écrans (Home, Brushing, Reports, Badges, Rewards,
+│   │                       #   Settings, Onboarding, PdfPreview)
+│   └── widgets/            # Widgets réutilisables (DailyProgressCard, ActionButtons,
+│                           #   HistoryCard, LevelBar, VibrantCard, LevelUpDialog, etc.)
+└── utils/                  # Utilitaires (AppTheme, BuildInfo, formatage)
+
+scripts/
+└── optimize_themes.py      # Optimisation des images de thèmes (Pillow)
+```
+
+---
+
+## Installation et lancement
+
+### Prérequis
+
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) installé et configuré
+- Android SDK (pour le build Android)
+- Un émulateur Android ou un appareil physique connecté
+
+### Lancement
+
+```bash
+flutter pub get
+flutter run
+```
+
+### Optimisation des images de thèmes
 
 ```bash
 pip install Pillow
 python scripts/optimize_themes.py
 ```
 
-Le script redimensionne à 1080px de largeur (format mobile) et compresse les PNG.
+Le script redimensionne les images à 1080px de largeur (format mobile) et compresse les PNG.
 
-## 📂 Structure du Projet
+---
 
-```
-lib/
-├── main.dart           # Point d'entrée de l'application
-├── models/             # Modèles de données (Session, etc.)
-├── providers/          # Gestion d'état (Timer logic)
-├── services/           # Services (Base de données)
-├── ui/
-│   ├── screens/        # Écrans (Accueil, Brossage, Rapports)
-│   └── widgets/        # Widgets réutilisables
-└── utils/              # Utilitaires (Formatage, etc.)
-```
+## Build release
 
-## 🚀 Installation & Lancement
-
-1.  **Pré-requis** : Avoir le Flutter SDK installé.
-2.  **Récupérer les dépendances** :
-    ```bash
-    flutter pub get
-    ```
-3.  **Lancer l'application** :
-    ```bash
-    flutter run
-    ```
-
-## 📱 Émulateur OnePlus Nord
-
-Un émulateur Android personnalisé reproduisant les caractéristiques du **OnePlus Nord (1ère génération)** est configuré pour le projet.
-
-### Spécifications émulées
-
-| Caractéristique | Valeur |
-|---|---|
-| Écran | 6.44" Super AMOLED, 2400 × 1080 px |
-| Densité | 420 dpi (~408 ppi réel) |
-| Rafraîchissement | 90 Hz |
-| Processeur | Snapdragon 765G (émulé x86_64) |
-| RAM | 4 Go (émulateur) / 8 Go (réel) |
-| Stockage | 16 Go (émulateur) / 128 Go (réel) |
-| Android | 10 (API 29) avec Google APIs |
-
-### Lancer l'émulateur
-
-```powershell
-# Via la ligne de commande
-C:\Users\damie\AppData\Local\Android\Sdk\emulator\emulator.exe -avd OnePlus_Nord
-
-# Ou via Flutter
-flutter emulators --launch OnePlus_Nord
-```
-
-### Lancer l'app sur l'émulateur
-
-```bash
-flutter run -d emulator-5554
-```
-
-### Fichiers de configuration
-
-- **Profil de device** : `%USERPROFILE%\.android\devices.xml` — définition XML du OnePlus Nord (écran, capteurs, dimensions)
-- **AVD** : `%USERPROFILE%\.android\avd\OnePlus_Nord.avd\config.ini` — configuration de l'émulateur
-
-## 🏗️ Build
-
-Le script `build_release.ps1` génère automatiquement le fichier `lib/utils/build_info.dart` (version lue depuis `pubspec.yaml` + date du jour), puis lance le build. La version et la date sont affichées dans la page des paramètres.
+Le script `build_release.ps1` génère automatiquement le fichier `lib/utils/build_info.dart` (version + date de build), puis propose un menu interactif :
 
 ```powershell
 .\build_release.ps1
 ```
 
-## 🚀 Publication Google Play Store
+Options disponibles :
+1. APK standard
+2. APK split par architecture
+3. App Bundle (Google Play Store)
+4. Windows Desktop
+5. Nettoyage seul
 
-L'application est préparée pour la publication sur le Google Play Store.
+La version et la date de build sont affichées dans la page des paramètres de l'app.
 
-### Prérequis
+---
 
-- Compte Google Play Developer
-- Clé de signature (`android/app/upload-keystore.jks`) — non versionnée
-- Fichier `android/key.properties` — non versionné
+## Publication Google Play Store
 
-### Compiler pour le Play Store
-
-```powershell
-# App Bundle signé (recommandé pour le Play Store)
-flutter build appbundle --release
-# Le fichier .aab est généré dans build/app/outputs/bundle/release/
-```
+L'application est configurée pour la publication sur le Google Play Store.
 
 ### Fichiers de configuration
 
-| Fichier | Description |
-|---------|-------------|
-| `android/app/build.gradle.kts` | Configuration Gradle avec signature release et ProGuard |
-| `android/app/proguard-rules.pro` | Règles ProGuard pour l'optimisation |
-| `android/key.properties` | Références au keystore (non versionné) |
-| `privacy_policy.html` | Politique de confidentialité |
-| `PUBLISH_GUIDE.md` | Guide complet de publication étape par étape |
+| Fichier | Description | Versionné |
+|---------|-------------|-----------|
+| `android/app/build.gradle.kts` | Configuration Gradle avec signature release et ProGuard | Oui |
+| `android/app/proguard-rules.pro` | Règles ProGuard pour l'optimisation | Oui |
+| `android/key.properties` | Références au keystore | **Non** |
+| `android/app/upload-keystore.jks` | Clé de signature upload | **Non** |
+| `privacy_policy.html` | Politique de confidentialité | Oui |
+| `PUBLISH_GUIDE.md` | Guide complet de publication étape par étape | Oui |
 
-### Politique de confidentialité
+### Compiler pour le Play Store
 
-L'application ne collecte, ne transmet et ne partage aucune donnée personnelle. Toutes les données sont stockées exclusivement sur l'appareil de l'utilisateur. Voir `privacy_policy.html` pour la version complète.
+```bash
+flutter build appbundle --release
+```
 
-## ⚙️ Configuration
+Le fichier `.aab` signé est généré dans `build/app/outputs/bundle/release/`.
 
-Les réglages sont stockés en base de données localement :
-- **Heure de fin de journée** : L'heure à partir de laquelle une nouvelle journée commence (par défaut 0h = minuit). Les sessions terminées avant cette heure comptent pour le jour précédent.
-- **Durée du brossage** : Durée du minuteur de brossage (par défaut 5 min).
-- **Objectif quotidien** : Nombre d'heures de port cible par jour (par défaut 13h).
+---
 
-### Fond d'écran (Android)
+## Confidentialité
 
-La définition du fond d'écran s'effectue en arrière-plan : un indicateur de chargement apparaît pendant le traitement. Les images sont décodées avec préservation des couleurs natives (sans filtre d'assombrissement).
+OrthoQuest ne collecte, ne transmet et ne partage **aucune donnée personnelle**. Toutes les données sont stockées **exclusivement sur l'appareil** de l'utilisateur (SQLite + SharedPreferences). Aucun service tiers de suivi, d'analyse ou de publicité n'est intégré. Aucun compte utilisateur n'est requis.
 
-## 📝 Auteur
+Conforme au RGPD (UE) et à la nLPD (Suisse).
 
-Développé par Damien Brot, Suisse.
+Voir [`privacy_policy.html`](https://dabouse.github.io/OrthoQuest/privacy_policy.html) pour la politique complète.
 
-## 📄 Licence
+---
 
-Politique de confidentialité : voir `privacy_policy.html`
+## Configuration
+
+| Paramètre | Description | Défaut |
+|------------|-------------|--------|
+| Heure de fin de journée | Heure à partir de laquelle une nouvelle journée commence | 0h (minuit) |
+| Durée du brossage | Durée du minuteur de brossage | 5 min |
+| Objectif quotidien | Nombre d'heures de port cible par jour | 13h |
+
+### Zone avancée (cachée)
+
+Accessible après 5 taps sur le numéro de version dans les paramètres :
+- Revoir l'introduction (onboarding)
+- Exporter / importer la base de données
+- Générer des données de test (21 jours)
+- Effacer toutes les données
+
+---
+
+## Auteur
+
+Développé par **Damien Brot** en Suisse.
+
+## Licence
+
+Copyright (c) 2026 Damien Brot. **Tous droits réservés.**
+
+Le code source est mis à disposition à titre de consultation uniquement.
+Voir le fichier [`LICENSE`](LICENSE) pour les conditions complètes.
