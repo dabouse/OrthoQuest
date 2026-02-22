@@ -113,6 +113,38 @@ Le script `build_release.ps1` génère automatiquement le fichier `lib/utils/bui
 .\build_release.ps1
 ```
 
+## 🚀 Publication Google Play Store
+
+L'application est préparée pour la publication sur le Google Play Store.
+
+### Prérequis
+
+- Compte Google Play Developer
+- Clé de signature (`android/app/upload-keystore.jks`) — non versionnée
+- Fichier `android/key.properties` — non versionné
+
+### Compiler pour le Play Store
+
+```powershell
+# App Bundle signé (recommandé pour le Play Store)
+flutter build appbundle --release
+# Le fichier .aab est généré dans build/app/outputs/bundle/release/
+```
+
+### Fichiers de configuration
+
+| Fichier | Description |
+|---------|-------------|
+| `android/app/build.gradle.kts` | Configuration Gradle avec signature release et ProGuard |
+| `android/app/proguard-rules.pro` | Règles ProGuard pour l'optimisation |
+| `android/key.properties` | Références au keystore (non versionné) |
+| `privacy_policy.html` | Politique de confidentialité |
+| `PUBLISH_GUIDE.md` | Guide complet de publication étape par étape |
+
+### Politique de confidentialité
+
+L'application ne collecte, ne transmet et ne partage aucune donnée personnelle. Toutes les données sont stockées exclusivement sur l'appareil de l'utilisateur. Voir `privacy_policy.html` pour la version complète.
+
 ## ⚙️ Configuration
 
 Les réglages sont stockés en base de données localement :
@@ -126,4 +158,8 @@ La définition du fond d'écran s'effectue en arrière-plan : un indicateur de c
 
 ## 📝 Auteur
 
-Développé pour OrthoQuest.
+Développé par Damien Brot, Suisse.
+
+## 📄 Licence
+
+Politique de confidentialité : voir `privacy_policy.html`
