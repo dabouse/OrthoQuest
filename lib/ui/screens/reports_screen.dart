@@ -11,6 +11,7 @@ import '../../models/session.dart';
 import '../../utils/session_utils.dart';
 import '../../utils/date_utils.dart';
 import '../widgets/vibrant_card.dart';
+import '../widgets/session_actions_sheet.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -845,6 +846,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         );
                       }
                     });
+                },
+                onLongPress: () async {
+                  if (session.id != null && session.endTime != null) {
+                    final changed = await showSessionActionsSheet(
+                      context,
+                      ref,
+                      session,
+                    );
+                    if (changed == true) _loadStats();
+                  }
                 },
                 child: Container(
                   width: 75,

@@ -132,21 +132,20 @@ class HomeScreen extends ConsumerWidget {
       body: AppBackground(
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 const SliverToBoxAdapter(
                   child: Column(
                     children: [
-                      // Contenu principal
                       VibrantCard(
                         child: Column(
                           children: [
                             DailyProgressCard(),
-                            SizedBox(height: 12),
+                            SizedBox(height: 10),
                             HistoryCard(),
-                            SizedBox(height: 12),
+                            SizedBox(height: 10),
                             LevelBar(),
                           ],
                         ),
@@ -157,7 +156,7 @@ class HomeScreen extends ConsumerWidget {
                 SliverFillRemaining(
                   hasScrollBody: false,
                   child: Container(
-                    padding: const EdgeInsets.only(top: 20, bottom: 10),
+                    padding: const EdgeInsets.only(top: 16, bottom: 8),
                     alignment: Alignment.center,
                     child: const ActionButtons(),
                   ),

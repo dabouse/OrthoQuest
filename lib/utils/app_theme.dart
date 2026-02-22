@@ -254,7 +254,6 @@ class AppBackground extends ConsumerWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // Background: Image if exists, otherwise Gradient
           Positioned.fill(
             child: imagePath != null
                 ? Image.asset(
@@ -263,7 +262,6 @@ class AppBackground extends ConsumerWidget {
                     cacheWidth: cacheWidth,
                     cacheHeight: cacheHeight,
                     frameBuilder: (context, child, frame, _) {
-                      // Afficher le gradient immédiatement pendant le chargement
                       if (frame == null) {
                         return Container(
                             decoration: BoxDecoration(gradient: gradient));
@@ -273,8 +271,6 @@ class AppBackground extends ConsumerWidget {
                   )
                 : Container(decoration: BoxDecoration(gradient: gradient)),
           ),
-
-          // Subtle Stardust effect (only on gradients usually, but kept for all if needed)
           if (imagePath == null)
             Positioned.fill(
               child: IgnorePointer(
@@ -286,8 +282,6 @@ class AppBackground extends ConsumerWidget {
                 ),
               ),
             ),
-
-          // Content
           child,
         ],
       ),

@@ -4,6 +4,9 @@ import '../../services/database_service.dart';
 import '../../providers/timer_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/app_defaults.dart';
+import '../../utils/build_info.dart';
+import '../../utils/date_utils.dart';
 import '../widgets/vibrant_card.dart';
 import 'onboarding_screen.dart';
 
@@ -15,9 +18,9 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  int _dayEndHour = 5;
-  int _brushingDuration = 300;
-  int _dailyGoal = 13;
+  int _dayEndHour = AppDefaults.dayEndHour;
+  int _brushingDuration = AppDefaults.brushingDurationSeconds;
+  int _dailyGoal = AppDefaults.dailyGoalHours;
   bool _isLoading = true;
   int _versionTapCount = 0;
   bool _showAdvanced = false;
@@ -37,9 +40,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       if (mounted) {
         setState(() {
-          _dayEndHour = int.tryParse(dayEnd ?? '5') ?? 5;
-          _brushingDuration = int.tryParse(brushing ?? '300') ?? 300;
-          _dailyGoal = int.tryParse(goal ?? '13') ?? 13;
+          _dayEndHour = int.tryParse(dayEnd ?? '') ?? AppDefaults.dayEndHour;
+          _brushingDuration = int.tryParse(brushing ?? '') ?? AppDefaults.brushingDurationSeconds;
+          _dailyGoal = int.tryParse(goal ?? '') ?? AppDefaults.dailyGoalHours;
           _showAdvanced = false; // Toujours caché au démarrage
           _isLoading = false;
         });
@@ -222,7 +225,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 style: TextStyle(shadows: AppTheme.textShadows),
                               ),
                               subtitle: const Text(
-                                "1.0.0",
+                                "${BuildInfo.version} • ${BuildInfo.date}",
                                 style: TextStyle(shadows: AppTheme.textShadows),
                               ),
                               leading: const Icon(

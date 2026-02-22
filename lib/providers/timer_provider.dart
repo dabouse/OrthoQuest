@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/session.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
+import '../utils/app_defaults.dart';
 import '../utils/date_utils.dart';
 import 'user_provider.dart';
 
@@ -25,8 +26,8 @@ class TimerState {
     this.dailyTotalDuration = Duration.zero,
     this.dailySessions = const [],
     this.recentHistory = const {},
-    this.dailyGoal = 13,
-    this.dayEndHour = 5,
+    this.dailyGoal = AppDefaults.dailyGoalHours,
+    this.dayEndHour = AppDefaults.dayEndHour,
   });
 
   TimerState copyWith({
@@ -85,8 +86,8 @@ class TimerNotifier extends Notifier<TimerState> {
   Future<void> refreshSettings() async {
     final goalStr = await DatabaseService().getSetting('daily_goal');
     final dayEndStr = await DatabaseService().getSetting('day_end_hour');
-    final goal = int.tryParse(goalStr ?? '13') ?? 13;
-    final dayEndHour = int.tryParse(dayEndStr ?? '5') ?? 5;
+    final goal = int.tryParse(goalStr ?? '') ?? AppDefaults.dailyGoalHours;
+    final dayEndHour = int.tryParse(dayEndStr ?? '') ?? AppDefaults.dayEndHour;
     state = state.copyWith(dailyGoal: goal, dayEndHour: dayEndHour);
     // Recharger les stats car day_end_hour affecte le découpage des journées
     await _loadDailyStats();
@@ -118,16 +119,28 @@ class TimerNotifier extends Notifier<TimerState> {
     final dayEndHour = state.dayEndHour;
     final dayStart = OrthoDateUtils.getDayStart(now, dayEndHour: dayEndHour);
     final dayEnd = dayStart.add(const Duration(days: 1));
+    final reportDate = OrthoDateUtils.getReportingDate(now, dayEndHour: dayEndHour);
 
     final allSessions = await DatabaseService().getSessions();
 
+    // Stickers : sessions démarrées aujourd'hui
     final dailySessions = allSessions.where((s) {
       return s.startTime.isAfter(dayStart) && s.startTime.isBefore(dayEnd);
     }).toList();
 
+    // Durée totale : sessions qui chevauchent aujourd'hui, clippées à la fenêtre
     Duration total = Duration.zero;
-    for (var s in dailySessions) {
-      total += s.duration;
+    for (var s in allSessions) {
+      if (s.endTime == null) continue;
+      final ms = OrthoDateUtils.clipSessionToDay(
+        s.startTime,
+        s.endTime!,
+        targetDate: reportDate,
+        dayEndHour: dayEndHour,
+      );
+      if (ms > 0) {
+        total += Duration(milliseconds: ms);
+      }
     }
 
     state = state.copyWith(
@@ -271,6 +284,73 @@ class TimerNotifier extends Notifier<TimerState> {
     } catch (e) {
       debugPrint('Erreur lors de l\'ajout de la session manuelle: $e');
       return "Erreur lors de l'enregistrement de la session";
+    }
+  }
+
+  /// Supprime une session existante et recalcule l'XP.
+  Future<String?> deleteSession(int sessionId) async {
+    try {
+      await DatabaseService().deleteSession(sessionId);
+      await ref.read(userProvider.notifier).recalculateXp();
+      await _loadDailyStats();
+      await _loadHistory();
+      await ref.read(userProvider.notifier).refresh();
+      return null;
+    } catch (e) {
+      debugPrint('Erreur lors de la suppression de la session: $e');
+      return "Erreur lors de la suppression de la session";
+    }
+  }
+
+  /// Modifie une session existante avec validation.
+  /// Retourne null si succès, ou un message d'erreur.
+  Future<String?> editSession({
+    required int sessionId,
+    required DateTime startTime,
+    required Duration duration,
+    int? stickerId,
+  }) async {
+    if (startTime.isAfter(DateTime.now())) {
+      return "La session ne peut pas être dans le futur";
+    }
+    if (duration.inMinutes <= 0) {
+      return "La durée doit être supérieure à 0";
+    }
+    if (duration.inHours > 24) {
+      return "La durée ne peut pas dépasser 24 heures";
+    }
+
+    final endTime = startTime.add(duration);
+
+    final allSessions = await DatabaseService().getSessions();
+    for (var session in allSessions) {
+      if (session.id == sessionId) continue;
+      final sessionStart = session.startTime;
+      final sessionEnd = session.endTime ?? DateTime.now();
+      final overlaps =
+          startTime.isBefore(sessionEnd) && endTime.isAfter(sessionStart);
+      if (overlaps) {
+        return "Cette session chevauche une session existante";
+      }
+    }
+
+    final updatedSession = Session(
+      id: sessionId,
+      startTime: startTime,
+      endTime: endTime,
+      stickerId: stickerId,
+    );
+
+    try {
+      await DatabaseService().updateSession(updatedSession);
+      await ref.read(userProvider.notifier).recalculateXp();
+      await _loadDailyStats();
+      await _loadHistory();
+      await ref.read(userProvider.notifier).refresh();
+      return null;
+    } catch (e) {
+      debugPrint('Erreur lors de la modification de la session: $e');
+      return "Erreur lors de la modification de la session";
     }
   }
 

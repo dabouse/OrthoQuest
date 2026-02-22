@@ -4,8 +4,10 @@ import 'package:percent_indicator/percent_indicator.dart';
 import '../../../providers/timer_provider.dart';
 import '../../../providers/user_provider.dart';
 import '../../../utils/app_theme.dart';
+import '../../../utils/date_utils.dart';
 import '../../../utils/session_utils.dart';
 import '../../screens/rewards_screen.dart';
+import '../session_actions_sheet.dart';
 
 class DailyProgressCard extends ConsumerWidget {
   const DailyProgressCard({super.key});
@@ -14,10 +16,27 @@ class DailyProgressCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final timerState = ref.watch(timerProvider);
     final userState = ref.watch(userProvider);
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final s = (screenHeight / 950.0).clamp(0.7, 1.2);
 
-    // Total duration: stored daily total + current session
+    // Session en cours : clipper à la fenêtre du jour actuel
+    Duration todayCurrentSession = timerState.currentSessionDuration;
+    if (timerState.isRunning && timerState.startTime != null) {
+      final dayStart = OrthoDateUtils.getDayStart(
+        DateTime.now(),
+        dayEndHour: timerState.dayEndHour,
+      );
+      if (timerState.startTime!.isBefore(dayStart)) {
+        todayCurrentSession = DateTime.now().difference(dayStart);
+        if (todayCurrentSession.isNegative) {
+          todayCurrentSession = Duration.zero;
+        }
+      }
+    }
+
+    // Total duration: sessions terminées (clippées) + session en cours (clippée)
     final totalDuration =
-        timerState.dailyTotalDuration + timerState.currentSessionDuration;
+        timerState.dailyTotalDuration + todayCurrentSession;
 
     // Target: Dynamic based on settings
     final targetMinutes = timerState.dailyGoal * 60;
@@ -31,7 +50,7 @@ class DailyProgressCard extends ConsumerWidget {
           child: Column(
             children: [
               // Sessions du jour en haut (toujours présent pour stabilité)
-              _buildSessionList(context, ref, timerState),
+              _buildSessionList(context, ref, timerState, s),
 
               // Jauge circulaire principale
               Center(
@@ -40,8 +59,8 @@ class DailyProgressCard extends ConsumerWidget {
                   alignment: Alignment.topCenter,
                   children: [
                     CircularPercentIndicator(
-                radius: 115.0,
-                lineWidth: 20.0,
+                radius: 115.0 * s,
+                lineWidth: 20.0 * s,
                 percent: progress,
                 center: Padding(
                   padding: const EdgeInsets.all(15.0),
@@ -135,45 +154,34 @@ class DailyProgressCard extends ConsumerWidget {
                   ),
                 ),
                     ),
-                    // Bordure extérieure (230 = 2×radius)
                     Positioned(
                       top: 0,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: IgnorePointer(
-                          child: SizedBox(
-                            width: 230,
-                            height: 230,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                ),
+                      child: IgnorePointer(
+                        child: SizedBox(
+                          width: 230 * s,
+                          height: 230 * s,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.8),
                               ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                    // Bordure intérieure (210 = 2×radius - lineWidth, bord intérieur du ring)
                     Positioned(
-                      top: 20
-                      ,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: IgnorePointer(
-                          child: SizedBox(
-                            width: 190,
-                            height: 190,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                ),
+                      top: 20 * s,
+                      child: IgnorePointer(
+                        child: SizedBox(
+                          width: 190 * s,
+                          height: 190 * s,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.8),
                               ),
                             ),
                           ),
@@ -255,11 +263,12 @@ class DailyProgressCard extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     TimerState timerState,
+    double s,
   ) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.only(bottom: 12 * s),
       child: SizedBox(
-        height: 40,
+        height: 36 * s,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           itemCount: timerState.dailySessions.length,
@@ -276,11 +285,11 @@ class DailyProgressCard extends ConsumerWidget {
 
             return GestureDetector(
               onLongPress: () {
-                if (session.id != null) {
-                  _showEditStickerDialog(context, ref, session.id!);
+                if (session.id != null && session.endTime != null) {
+                  showSessionActionsSheet(context, ref, session);
                 }
               },
-              onTap: () {}, // Triggered by Tooltip triggerMode
+              onTap: () {},
               child: TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),
                 duration: Duration(milliseconds: 400 + (index * 100)),
@@ -340,83 +349,4 @@ class DailyProgressCard extends ConsumerWidget {
     );
   }
 
-  void _showEditStickerDialog(
-    BuildContext context,
-    WidgetRef ref,
-    int sessionId,
-  ) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Modifier la session"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Choisis une nouvelle icône :"),
-            const SizedBox(height: 20),
-            SingleChildScrollView(
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                alignment: WrapAlignment.center,
-                children: SessionUtils.stickers.entries.map((entry) {
-                  final id = entry.key;
-                  final data = entry.value;
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          ref
-                              .read(timerProvider.notifier)
-                              .updateSessionSticker(sessionId, id);
-                          Navigator.pop(context);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: (data['color'] as Color).withValues(
-                                  alpha: 0.3,
-                                ),
-                                blurRadius: 10,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                            border: Border.all(
-                              color: data['color'] as Color,
-                              width: 2,
-                            ),
-                          ),
-                          child: Icon(
-                            data['icon'] as IconData,
-                            color: data['color'] as Color,
-                            size: 32,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        data['label'] as String,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Annuler"),
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -8,10 +8,12 @@ L'objectif est d'atteindre une durée cible quotidienne (par défaut 12-13h) pou
 
 -   **Suivi du temps de port** : Timer simple Start/Stop.
 -   **Objectif visuel** : Jauge circulaire pour voir la progression de la journée.
--   **Heure de fin de journée configurable** : Une "journée" de port se termine à l'heure configurée (par défaut 5h du matin). Cela permet de compter une nuit complète de sommeil sur la même date (essentiel pour l'orthodontie).
+-   **Interface responsive** : L'écran d'accueil s'adapte automatiquement à toutes les résolutions d'écran (jauge circulaire, boutons d'action, barres d'historique et barre de niveau se redimensionnent proportionnellement).
+-   **Heure de fin de journée configurable** : Une "journée" de port se termine à l'heure configurée (par défaut minuit). Le temps de port après minuit est compté sur le jour courant. Les sessions traversant cette frontière sont automatiquement découpées entre les deux jours.
 -   **Timer de Brossage** : Un minuteur de 5 minutes (configurable) avec animation et son pour accompagner le brossage des dents. Interface harmonisée avec le reste de l'app (cartes translucides, anneau avec bordures, boutons stylisés).
 -   **Statistiques** : Graphique des 7 derniers jours pour voir la régularité.
 -   **Stickers** : Un petit système de notes/humeur pour chaque session.
+-   **Modifier / Supprimer une session** : Appui long sur un sticker de session (écran d'accueil ou statistiques) pour modifier les horaires, la durée, le sticker, ou supprimer la session. L'XP est automatiquement recalculée.
 -   **Personnalisation** : Thèmes visuels débloqués par niveau. Les thèmes débloqués peuvent être définis en fond d'écran du téléphone en un clic (Android uniquement). Un indicateur de chargement s'affiche pendant l'opération.
 
 ## 🛠 Stack Technique
@@ -66,12 +68,20 @@ lib/
     flutter run
     ```
 
+## 🏗️ Build
+
+Le script `build_release.ps1` génère automatiquement le fichier `lib/utils/build_info.dart` (version lue depuis `pubspec.yaml` + date du jour), puis lance le build. La version et la date sont affichées dans la page des paramètres.
+
+```powershell
+.\build_release.ps1
+```
+
 ## ⚙️ Configuration
 
 Les réglages sont stockés en base de données localement :
-- **Heure de fin de journée** : L’heure à partir de laquelle une nouvelle journée commence (par défaut 5h). Les sessions terminées avant cette heure comptent pour le jour précédent.
+- **Heure de fin de journée** : L'heure à partir de laquelle une nouvelle journée commence (par défaut 0h = minuit). Les sessions terminées avant cette heure comptent pour le jour précédent.
 - **Durée du brossage** : Durée du minuteur de brossage (par défaut 5 min).
-- **Objectif quotidien** : Nombre d’heures de port cible par jour (par défaut 13h).
+- **Objectif quotidien** : Nombre d'heures de port cible par jour (par défaut 13h).
 
 ### Fond d'écran (Android)
 

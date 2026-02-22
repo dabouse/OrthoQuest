@@ -12,6 +12,8 @@ class HistoryCard extends ConsumerWidget {
     final timerState = ref.watch(timerProvider);
     final history = timerState.recentHistory;
     final days = [1, 2, 3];
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final s = (screenHeight / 950.0).clamp(0.7, 1.2);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -56,7 +58,7 @@ class HistoryCard extends ConsumerWidget {
                       Stack(
                         children: [
                           Container(
-                            height: 60,
+                            height: 60 * s,
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(8),

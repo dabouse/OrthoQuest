@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/database_service.dart';
+import '../utils/app_defaults.dart';
 import '../utils/date_utils.dart';
 import '../models/session.dart';
 import '../utils/app_theme.dart';
@@ -74,8 +75,8 @@ class UserNotifier extends Notifier<UserState> {
     // Load goal et heure de fin de journée
     final goalStr = await DatabaseService().getSetting('daily_goal');
     final dayEndStr = await DatabaseService().getSetting('day_end_hour');
-    final goal = int.tryParse(goalStr ?? '13') ?? 13;
-    final dayEndHour = int.tryParse(dayEndStr ?? '5') ?? 5;
+    final goal = int.tryParse(goalStr ?? '') ?? AppDefaults.dailyGoalHours;
+    final dayEndHour = int.tryParse(dayEndStr ?? '') ?? AppDefaults.dayEndHour;
 
     // For streak, we calculate it dynamically from sessions
     final summaries = await DatabaseService().getDailySummaries();
@@ -265,6 +266,26 @@ class UserNotifier extends Notifier<UserState> {
     if (summaries.values.any((min) => min >= 16 * 60)) {
       unlockBadge('marathon');
     }
+  }
+
+  /// Recalcule l'XP totale à partir de toutes les sessions et brossages.
+  /// Utilisé après suppression ou modification d'une session pour garantir
+  /// la cohérence entre les données et l'XP affichée.
+  Future<void> recalculateXp() async {
+    final sessions = await DatabaseService().getSessions();
+    int sessionXp = 0;
+    for (final s in sessions) {
+      if (s.endTime == null) continue;
+      final xp = (s.duration.inMinutes / 6).floor();
+      sessionXp += xp;
+    }
+    final brushStr = await DatabaseService().getSetting('total_brushings');
+    final brushCount = int.tryParse(brushStr ?? '0') ?? 0;
+    final totalXp = sessionXp + (brushCount * 50);
+    final newLevel = (totalXp / 1000).floor() + 1;
+
+    state = state.copyWith(xp: totalXp, level: newLevel);
+    await DatabaseService().updateUserStats(totalXp, newLevel);
   }
 
   Future<void> refresh() async {

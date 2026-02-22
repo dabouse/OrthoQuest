@@ -19,68 +19,74 @@ class BadgesScreen extends ConsumerWidget {
 
       body: AppBackground(
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Column(
-                children: [
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.8,
-                        ),
-                    itemCount: model.appBadges.length,
-                    itemBuilder: (context, index) {
-                      final badge = model.appBadges[index];
-                      final isUnlocked = unlockedIds.contains(badge.id);
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 16,
+                              childAspectRatio: 0.8,
+                            ),
+                        itemCount: model.appBadges.length,
+                        itemBuilder: (context, index) {
+                          final badge = model.appBadges[index];
+                          final isUnlocked = unlockedIds.contains(badge.id);
 
-                      return _buildBadgeItem(context, badge, isUnlocked);
-                    },
-                  ),
-                  const SizedBox(height: 30),
-                  GestureDetector(
-                    onTap: () => _showBadgesInfo(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
+                          return _buildBadgeItem(context, badge, isUnlocked);
+                        },
                       ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.warningColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: AppTheme.warningColor.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.help_outline,
-                            size: 18,
-                            color: AppTheme.warningColor,
+                      const SizedBox(height: 30),
+                      GestureDetector(
+                        onTap: () => _showBadgesInfo(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
                           ),
-                          SizedBox(width: 10),
-                          Text(
-                            "Comment débloquer les badges ?",
-                            style: TextStyle(
-                              color: AppTheme.warningColor,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                          decoration: BoxDecoration(
+                            color: AppTheme.warningColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: AppTheme.warningColor.withValues(
+                                alpha: 0.5,
+                              ),
                             ),
                           ),
-                        ],
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.help_outline,
+                                size: 18,
+                                color: AppTheme.warningColor,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                "Comment débloquer les badges ?",
+                                style: TextStyle(
+                                  color: AppTheme.warningColor,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 30),
-                ],
-              ),
+                ),
+                const SliverFillRemaining(hasScrollBody: false),
+              ],
             ),
           ),
         ),

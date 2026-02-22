@@ -3,6 +3,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import 'dart:math' as math;
+import '../utils/app_defaults.dart';
 import 'database_service.dart';
 
 /// Service gérant la génération de rapports au format PDF avec graphiques.
@@ -19,10 +20,8 @@ class PdfService {
     final now = DateTime.now();
     final dateStr = DateFormat('dd/MM/yyyy').format(now);
 
-    // Fetch dynamic goal
-    // Ferch dynamic goal
     final goalStr = await DatabaseService().getSetting('daily_goal');
-    final goalHours = int.tryParse(goalStr ?? '13') ?? 13;
+    final goalHours = int.tryParse(goalStr ?? '') ?? AppDefaults.dailyGoalHours;
 
     // Calculate Summary Stats
     int totalMinutes = stats.values.fold(0, (sum, val) => sum + val);

@@ -11,6 +11,8 @@ class LevelBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userState = ref.watch(userProvider);
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final s = (screenHeight / 950.0).clamp(0.7, 1.2);
 
     return GestureDetector(
       onTap: () {
@@ -24,7 +26,7 @@ class LevelBar extends ConsumerWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearPercentIndicator(
-              lineHeight: 10.0,
+              lineHeight: 10.0 * s,
               percent: (userState.xp % 1000) / 1000,
               backgroundColor: Colors.grey.shade100,
               progressColor: Colors.blueAccent,

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/database_service.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/brushing_provider.dart';
+import '../../utils/app_defaults.dart';
 import '../../utils/app_theme.dart';
 import '../widgets/vibrant_card.dart';
 
@@ -39,7 +40,7 @@ class _BrushingScreenState extends ConsumerState<BrushingScreen>
 
   Future<void> _loadSettings() async {
     final val = await DatabaseService().getSetting('brushing_duration');
-    final durationSec = int.tryParse(val ?? '300') ?? 300;
+    final durationSec = int.tryParse(val ?? '') ?? AppDefaults.brushingDurationSeconds;
     // Only set duration if timer is not currently running to avoid resetting active session
     final currentState = ref.read(brushingProvider);
     if (!currentState.isRunning) {

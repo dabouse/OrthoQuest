@@ -109,6 +109,48 @@ if ($LASTEXITCODE -ne 0) {
     }
 }
 
+# Gestion de la version
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "Version de l'application" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+
+$versionLine = Select-String -Path "pubspec.yaml" -Pattern "^version:\s*(\S+)"
+$fullVersion = $versionLine.Matches.Groups[1].Value
+$version = ($fullVersion -split '\+')[0]
+$buildNumber = ($fullVersion -split '\+')[1]
+
+Write-Host "Version actuelle : " -NoNewline
+Write-Host "v$version" -ForegroundColor Yellow -NoNewline
+Write-Host " (build $buildNumber)"
+Write-Host ""
+$newVersion = Read-Host "Nouvelle version (Entrée pour garder v$version)"
+
+if ($newVersion -ne "") {
+    $newBuildNumber = [int]$buildNumber + 1
+    $pubContent = Get-Content "pubspec.yaml" -Raw
+    $pubContent = $pubContent -replace "^version:\s*\S+", "version: $newVersion+$newBuildNumber"
+    Set-Content -Path "pubspec.yaml" -Value $pubContent -Encoding UTF8 -NoNewline
+    $version = $newVersion
+    $buildNumber = $newBuildNumber
+    Write-Host "[INFO] Version mise à jour -> v$version+$buildNumber" -ForegroundColor Green
+} else {
+    Write-Host "[INFO] Version inchangée -> v$version+$buildNumber" -ForegroundColor Green
+}
+
+# Génération automatique de build_info.dart (version + date)
+$buildDate = Get-Date -Format "dd/MM/yyyy"
+
+$buildInfoContent = @"
+class BuildInfo {
+  BuildInfo._();
+  static const String version = '$version';
+  static const String date = '$buildDate';
+}
+"@
+Set-Content -Path "lib\utils\build_info.dart" -Value $buildInfoContent -Encoding UTF8
+Write-Host "[INFO] build_info.dart -> v$version ($buildDate)" -ForegroundColor Green
+
 # Compilation selon le choix
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
@@ -157,6 +199,13 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "========================================" -ForegroundColor Red
     Read-Host "Appuyez sur Entrée pour quitter"
     exit 1
+}
+
+# Renommer l'APK standard avec le numéro de version
+if ($choice -eq "1" -and (Test-Path $outputPath)) {
+    $apkDst = "build\app\outputs\flutter-apk\OrthoQuest V$version.apk"
+    Copy-Item $outputPath $apkDst -Force
+    Write-Host "[INFO] APK copiée -> $apkDst" -ForegroundColor Green
 }
 
 Write-Host ""

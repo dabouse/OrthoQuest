@@ -14,6 +14,8 @@ class ActionButtons extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final timerState = ref.watch(timerProvider);
     final isRunning = timerState.isRunning;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final s = (screenHeight / 950.0).clamp(0.7, 1.2);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -40,8 +42,8 @@ class ActionButtons extends ConsumerWidget {
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  width: 75,
-                  height: 75,
+                  width: 75 * s,
+                  height: 75 * s,
                   decoration: BoxDecoration(
                     gradient: isRunning
                         ? null
@@ -70,7 +72,7 @@ class ActionButtons extends ConsumerWidget {
                   ),
                   child: Icon(
                     Icons.cleaning_services,
-                    size: 35,
+                    size: 35 * s,
                     color: isRunning ? Colors.white24 : Colors.white,
                   ),
                 ),
@@ -122,8 +124,8 @@ class ActionButtons extends ConsumerWidget {
                       ? AppTheme.errorColor
                       : AppTheme.successColor,
                   child: Container(
-                    width: 100,
-                    height: 100,
+                    width: 100 * s,
+                    height: 100 * s,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: isRunning
@@ -148,7 +150,7 @@ class ActionButtons extends ConsumerWidget {
                     ),
                     child: Icon(
                       isRunning ? Icons.stop : Icons.power_settings_new,
-                      size: 50,
+                      size: 50 * s,
                       color: Colors.white,
                     ),
                   ),
@@ -207,8 +209,8 @@ class ActionButtons extends ConsumerWidget {
                   }
                 },
                 child: Container(
-                  width: 75,
-                  height: 75,
+                  width: 75 * s,
+                  height: 75 * s,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -231,9 +233,9 @@ class ActionButtons extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.edit_calendar,
-                    size: 35,
+                    size: 35 * s,
                     color: Colors.white,
                   ),
                 ),

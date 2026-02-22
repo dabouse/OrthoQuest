@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/session.dart';
+import '../utils/app_defaults.dart';
 import '../utils/date_utils.dart';
 import '../models/badge.dart';
 import 'dart:io';
@@ -102,12 +103,12 @@ class DatabaseService {
     // Insert default settings
     await db.insert(tableSettings, {
       colKey: 'brushing_duration',
-      colValue: '300',
-    }); // 5 minutes in seconds
+      colValue: '${AppDefaults.brushingDurationSeconds}',
+    });
     await db.insert(tableSettings, {
       colKey: 'day_end_hour',
-      colValue: '5',
-    }); // 5 AM
+      colValue: '${AppDefaults.dayEndHour}',
+    });
 
     // Create user_stats table
     await db.execute('''
@@ -237,6 +238,15 @@ class DatabaseService {
     );
   }
 
+  Future<int> deleteSession(int id) async {
+    final db = await database;
+    return await db.delete(
+      tableSessions,
+      where: '$colId = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<List<Session>> getSessions() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
@@ -248,33 +258,34 @@ class DatabaseService {
     });
   }
 
-  // Get daily stats for the last 7 days
-  // Returns map of Date -> Duration(minutes)
-  // Utilise day_end_hour des paramètres pour la règle de découpage des journées.
+  // Returns map of Date -> Duration(minutes).
+  // Les sessions traversant la frontière de journée sont découpées entre les jours.
   Future<Map<DateTime, int>> getDailySummaries() async {
     final sessions = await getSessions();
     final summaries = <DateTime, int>{};
-    final dayEndHour = int.tryParse(await getSetting('day_end_hour') ?? '5') ?? 5;
+    final dayEndHour = int.tryParse(await getSetting('day_end_hour') ?? '') ?? AppDefaults.dayEndHour;
 
     for (var session in sessions) {
-      if (session.endTime == null) {
-        continue;
+      if (session.endTime == null) continue;
+
+      final splits = OrthoDateUtils.splitSessionAcrossDays(
+        session.startTime,
+        session.endTime!,
+        dayEndHour: dayEndHour,
+      );
+      for (final entry in splits.entries) {
+        summaries[entry.key] = (summaries[entry.key] ?? 0) + entry.value;
       }
-
-      final start = session.startTime;
-      final reportingDate = OrthoDateUtils.getReportingDate(start, dayEndHour: dayEndHour);
-
-      final duration = session.durationInMinutes;
-      summaries[reportingDate] = (summaries[reportingDate] ?? 0) + duration;
     }
 
     return summaries;
   }
 
   /// Retourne le total exact en millisecondes pour la journée de reporting donnée.
-  /// Si [date] est null, utilise la date actuelle. Utilise day_end_hour des paramètres.
+  /// Si [date] est null, utilise la date actuelle. Les sessions sont clippées
+  /// à la fenêtre de la journée demandée.
   Future<int> getTodayTotalMs([DateTime? date]) async {
-    final dayEndHour = int.tryParse(await getSetting('day_end_hour') ?? '5') ?? 5;
+    final dayEndHour = int.tryParse(await getSetting('day_end_hour') ?? '') ?? AppDefaults.dayEndHour;
     final reportDate = OrthoDateUtils.getReportingDate(date ?? DateTime.now(), dayEndHour: dayEndHour);
     final sessions = await getSessions();
     int totalMs = 0;
@@ -282,16 +293,12 @@ class DatabaseService {
     for (var session in sessions) {
       if (session.endTime == null) continue;
 
-      final sessionReportDate = OrthoDateUtils.getReportingDate(
+      totalMs += OrthoDateUtils.clipSessionToDay(
         session.startTime,
+        session.endTime!,
+        targetDate: reportDate,
         dayEndHour: dayEndHour,
       );
-      if (sessionReportDate.year == reportDate.year &&
-          sessionReportDate.month == reportDate.month &&
-          sessionReportDate.day == reportDate.day) {
-        final duration = session.endTime!.difference(session.startTime);
-        totalMs += duration.inMilliseconds;
-      }
     }
     return totalMs;
   }
@@ -412,7 +419,7 @@ class DatabaseService {
 
     // Récupérer l'objectif pour s'assurer de le dépasser
     final goalStr = await getSetting('daily_goal');
-    final dailyGoal = int.tryParse(goalStr ?? '13') ?? 13;
+    final dailyGoal = int.tryParse(goalStr ?? '') ?? AppDefaults.dailyGoalHours;
 
     final now = DateTime.now();
     // Générer des données pour les 21 derniers jours (plus de volume)
